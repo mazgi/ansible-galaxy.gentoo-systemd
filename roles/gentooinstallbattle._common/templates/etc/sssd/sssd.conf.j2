@@ -1,0 +1,40 @@
+[sssd]
+config_file_version = 2
+services = nss, pam, sudo, ssh
+domains = {{ sss.domainname }}
+
+[nss]
+filter_users = root,ldap,named,avahi,haldaemon,dbus,radiusd,news,nscd
+
+[pam]
+
+[sudo]
+
+[ssh]
+
+[domain/{{ sss.domainname }}]
+id_provider = ldap
+auth_provider = ldap
+access_provider = ldap
+chpass_provider = ldap
+sudo_provider = ldap
+
+ldap_schema = {{ sss.ldap_schema }}
+ldap_tls_reqcert = {{ ldap.tls_reqcert }}
+ldap_id_use_start_tls = {{ sss.ldap_id_use_start_tls }}
+
+ldap_uri = {{ ldap.uri }}
+ldap_search_base = {{ ldap.base }}
+ldap_sudo_search_base = {{ ldap.sudoers_base }}
+
+ldap_group_object_class = posixGroup
+ldap_group_search_base = {{ sss.ldap_group_search_base }}
+ldap_access_filter = {{ sss.ldap_access_filter }}
+ldap_group_name = {{ sss.ldap_group_name }}
+ldap_group_member = {{ sss.ldap_group_member }}
+
+enumerate = true
+cache_credentials = true
+
+ldap_default_bind_dn = {{ ldap.binddn }}
+ldap_default_authtok = {{ ldap.bindpw }}

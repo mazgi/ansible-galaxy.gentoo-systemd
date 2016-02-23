@@ -1,0 +1,33 @@
+ansible_python_interpreter: "/usr/bin/python2"
+main_block_device: "{% set found = False %}{% for node in ansible_devices.keys() %}{% if ansible_devices[node].removable == '0' and not found %}{{ node }}{% set fount = True %}{% endif %}{% endfor %}"
+swap_size: "2GiB"
+hostname: "{{ ansible_hostname }}"
+localtime_zone: "Japan"
+portage:
+  mirror_uri: "ftp://ftp.jaist.ac.jp/pub/Linux/Gentoo"
+  portage_binhost: "ftp://binhost.example.com"
+  tmpdir_tmpfs_size: "{{ ( ansible_memtotal_mb / 4 ) | round | int }}M"
+stat:
+  - { path: "/etc/profile.d/makeopts.sh", mode: "u=rwx,g=rx,o=rx" }
+  - { path: "/etc/portage/make.conf", mode: "u=rw,g=r,o=r" }
+network:
+  - { interface: "{{ ansible_default_ipv4.interface }}", config: "{{ ansible_default_ipv4.address }}/{{ ansible_default_ipv4.netmask }}", routes: "default via {{ ansible_default_ipv4.gateway }}", dns_servers: "8.8.8.8", dns_domain: "{{ ansible_domain }}" }
+sshd:
+  port: 10022
+ntp:
+  server: "ntp.jst.mfeed.ad.jp"
+ldap:
+  uri: "ldap://example.com"
+  binddn: "cn=foo,dc=example,dc=com"
+  bindpw: "P@ssw0rd!"
+  tls_reqcert: "never"
+  base: "dc=example,dc=com"
+  sudoers_base: "ou=SUDOers,dc=example,dc=com"
+sss:
+  domainname: "example"
+  ldap_schema: "rfc2307"
+  ldap_id_use_start_tls: "false"
+  ldap_group_search_base: "out=Group,dc=example,dc=com"
+  ldap_access_filter: "(&(employeeType=*)(gidNumber=12345))"
+  ldap_group_name: "cn"
+  ldap_group_member: "memberUid"

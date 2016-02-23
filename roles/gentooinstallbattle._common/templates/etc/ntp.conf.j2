@@ -1,0 +1,7 @@
+server {{ ntp.server }}
+
+driftfile	/var/lib/ntp/ntp.drift
+
+restrict default nomodify nopeer noquery limited kod
+restrict 127.0.0.1
+restrict [::1]

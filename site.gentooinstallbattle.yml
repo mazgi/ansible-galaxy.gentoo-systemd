@@ -1,0 +1,14 @@
+- name: "Apply common configurations"
+  hosts: all
+  vars_prompt:
+    - name: new_root_password
+      prompt: "Please imput new root password"
+      private: yes
+      confirm: yes
+    - name: restart_after_installation
+      prompt: "Do you want to restart this host after installation?"
+      default: "yes"
+      private: no
+  roles:
+    - { role: roles/gentooinstallbattle._common }
+  serial: 100%

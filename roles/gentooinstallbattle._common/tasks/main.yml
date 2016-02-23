@@ -1,0 +1,242 @@
+- name: "Unmount all"
+  shell: awk '{print $2}' /proc/mounts | grep /mnt/gentoo | sort -r | xargs umount || true
+
+- name: "Create partition table"
+  command: "parted --script --align optimal /dev/{{ main_block_device }} -- mklabel gpt"
+
+- name: "Create BIOS boot partition"
+  command: "parted --script --align optimal /dev/{{ main_block_device }} -- mkpart bios_boot fat32 1MiB 5MiB"
+
+- name: "Set BIOS boot partition"
+  command: "parted --script --align optimal /dev/{{ main_block_device }} -- set 1 bios_grub on"
+
+- name: "Create filesystem for grub2"
+  filesystem: fstype=vfat dev=/dev/{{ main_block_device }}1
+
+- name: "Create swap partition"
+  command: "parted --script --align optimal /dev/{{ main_block_device }} -- mkpart swap linux-swap 5MiB {{ swap_size }}"
+
+- name: "Create filesystem for swap"
+  command: mkswap /dev/{{ main_block_device }}2
+
+- name: "Create root partition"
+  command: "parted --script --align optimal /dev/{{ main_block_device }} -- mkpart linux btrfs {{ swap_size }} -1"
+
+- name: "Create filesystem for /"
+  filesystem: fstype=btrfs dev=/dev/{{ main_block_device }}3
+
+- name: "Create mount point to create btrfs subvolumes"
+  file: >
+    path=/mnt/btrfs
+    state=directory
+
+- name: "Mount btrfs to create subvolumes"
+  mount: >
+    name=/mnt/btrfs
+    src=/dev/{{ main_block_device }}3
+    fstype=btrfs
+    state=mounted
+
+- name: "Create subvolumes"
+  command: >
+    creates=/mnt/btrfs/{{ item }}
+    btrfs subvolume create /mnt/btrfs/{{ item }}
+  with_items:
+    - gentoo
+    - var-log
+
+- name: "Unmount btrfs"
+  mount: >
+    name=/mnt/btrfs
+    src=/dev/{{ main_block_device }}3
+    fstype=btrfs
+    state=unmounted
+
+- name: "Mount /"
+  mount: >
+    name=/mnt/gentoo
+    src=/dev/{{ main_block_device }}3
+    fstype=btrfs
+    opts=defaults,subvol=gentoo,compress=lzo,autodefrag
+    state=mounted
+
+- name: "Create mount point for /var/log"
+  file: >
+    path=/mnt/gentoo/var/log
+    state=directory
+
+- name: "Mount /var/log"
+  mount: >
+    name=/mnt/gentoo/var/log
+    src=/dev/{{ main_block_device }}3
+    fstype=btrfs
+    opts=defaults,subvol=var-log,compress=gzip,autodefrag
+    state=mounted
+
+- name: "Get latest-stage3.txt"
+  get_url: >
+    url={{ portage.mirror_uri }}/releases/amd64/autobuilds/latest-stage3-amd64.txt
+    dest=/root/
+    force=yes
+
+- name: "Get stage3 filename"
+  shell: grep -vE '^\s*(#|$)' /root/latest-stage3-amd64.txt | awk '{print $1}'
+  register: latest_stage3_filename
+
+- name: "Get stage3 archive"
+  get_url: >
+    url={{ portage.mirror_uri }}/releases/amd64/autobuilds/{{ latest_stage3_filename.stdout }}
+    dest=/mnt/gentoo/stage3-amd64-latest.tar.bz2
+    force=yes
+
+- name: "Get portage snapshot archive"
+  get_url: >
+    url={{ portage.mirror_uri }}/snapshots/portage-latest.tar.xz
+    dest=/mnt/gentoo/
+    force=yes
+
+- name: "Unarchive stage3"
+  unarchive: >
+    src=/mnt/gentoo/stage3-amd64-latest.tar.bz2
+    dest=/mnt/gentoo
+    copy=no
+
+- name: "Unarchive portage snapshot"
+  unarchive: >
+    src=/mnt/gentoo/portage-latest.tar.xz
+    dest=/mnt/gentoo/usr/
+    copy=no
+
+- name: "Mount /dev"
+  mount: >
+    name=/mnt/gentoo/dev
+    src=/dev
+    fstype=none
+    opts=rbind
+    state=mounted
+
+- name: "Mount /sys"
+  mount: >
+    name=/mnt/gentoo/sys
+    src=/sys
+    fstype=none
+    opts=rbind
+    state=mounted
+
+- name: "Mount /proc"
+  mount: >
+    name=/mnt/gentoo/proc
+    src=none
+    fstype=proc
+    state=mounted
+
+- name: "Mount /var/tmp/portage"
+  mount: >
+    name=/mnt/gentoo/var/tmp/portage
+    src=none
+    fstype=tmpfs
+    opts=size={{ ( ansible_memtotal_mb / 2 ) | round | int }}M,uid=portage,gid=portage,mode=755
+    state=mounted
+
+- name: "Configure root authrized key"
+  authorized_key: >
+    user=root
+    key="{{ lookup('file', item) }}"
+    path="/mnt/gentoo/root/.ssh/authorized_keys"
+  with_fileglob: "~/.ssh/*.pub"
+
+- name: "Copy files"
+  command: >
+    creates={{ item.dest }}
+    cp {{ item.opts }} {{ item.src }} {{ item.dest }}
+  with_items:
+    - { src: "/etc/resolv.conf", dest: "/mnt/gentoo/etc/resolv.conf", opts: "-L" }
+    - { src: "/mnt/gentoo/usr/share/zoneinfo/{{ localtime_zone }}", dest: "/mnt/gentoo/etc/localtime", opts: "-f" }
+
+- name: "Place directories in /etc"
+  file: >
+    path={{ item | regex_replace('^('+role_path+'/templates)(.*)',"/mnt/gentoo\\2") }}
+    state=directory
+  with_lines: find {{ role_path }}/templates -type d
+
+- name: "Place files into /etc"
+  template: >
+    src={{ item }}
+    dest={{ item | regex_replace('^('+role_path+'/templates)(.*)(\.j2$)',"/mnt/gentoo\\2") }}
+  with_lines: find {{ role_path }}/templates -type f -name '*.j2'
+
+- name: "Set attr to files"
+  file: path=/mnt/gentoo/{{ item.path }} mode={{ item.mode }}
+  with_items: "{{ stat }}"
+
+- name: "Configure network"
+  template: >
+    src=etc/conf.d/net.tpl
+    dest=/mnt/gentoo/etc/conf.d/net.{{ item.interface }}
+  with_items: "{{ network }}"
+
+- name: "Create network interface"
+  command: >
+    creates=/mnt/gentoo/etc/init.d/net.{{ item.interface }}
+    chdir=/mnt/gentoo/etc/init.d
+    ln -fs net.lo net.{{ item.interface }}
+  with_items: "{{ network }}"
+
+- name: "Add network interface to run configuration"
+  command: >
+    chroot /mnt/gentoo /bin/bash -c 'env-update && source /etc/profile && rc-update add net.{{ item.interface }} default'
+  with_items: "{{ network }}"
+
+- name: "Set root password"
+  command: >
+    chroot /mnt/gentoo /bin/bash -c 'env-update && source /etc/profile && echo "root:{{ new_root_password }}" | chpasswd'
+
+- name: "Generate locales"
+  command: >
+    chroot /mnt/gentoo /bin/bash -c 'env-update && source /etc/profile && locale-gen'
+
+- name: "Sync gentoo repo"
+  command: >
+    creates=/mnt/gentoo/usr/portage/metadata/timestamp.chk
+    chroot /mnt/gentoo /bin/bash -c 'env-update && source /etc/profile && emaint sync -r gentoo'
+
+- name: "Install git"
+  command: >
+    creates=/mnt/gentoo/usr/bin/git
+    chroot /mnt/gentoo /bin/bash -c 'env-update && source /etc/profile && emerge -uq dev-vcs/git'
+
+- name: "Sync all repos"
+  command: >
+    chroot /mnt/gentoo /bin/bash -c 'env-update && source /etc/profile && emaint sync -a'
+
+- name: "Install and update packages"
+  command: >
+    chroot /mnt/gentoo /bin/bash -c 'env-update && source /etc/profile && emerge -uNDq @world'
+
+- name: "Add daemons to run configuration"
+  command: >
+    chroot /mnt/gentoo /bin/bash -c 'env-update && source /etc/profile && rc-update add {{ item }} default'
+  with_items:
+    - rsyslog
+    - vixie-cron
+    - ntpd
+    - sshd
+    - sssd
+    - zabbix-agentd
+
+- name: "Install kernel"
+  command: >
+    creates=/mnt/gentoo/boot/kernel-genkernel-*
+    chroot /mnt/gentoo /bin/bash -c 'env-update && source /etc/profile && genkernel --makeopts=-j$(nproc) all'
+
+- name: "Install boot loader"
+  command: >
+    chroot /mnt/gentoo /bin/bash -c 'env-update && source /etc/profile && grub2-install /dev/{{ main_block_device }}'
+
+- name: "Configure boot loader"
+  command: >
+    chroot /mnt/gentoo /bin/bash -c 'env-update && source /etc/profile && grub2-mkconfig -o /boot/grub/grub.cfg'
+
+- name: "Reboot system"
+  command: reboot
+  when: restart_after_installation | lower == "yes"
