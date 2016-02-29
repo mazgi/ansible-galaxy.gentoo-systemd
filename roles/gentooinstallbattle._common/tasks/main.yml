@@ -1,20 +1,36 @@
+- name: "Get stat of UEFI directory"
+  stat: path="/sys/firmware/efi"
+  register: stat_of_uefi_directory
+
 - name: "Unmount all"
   shell: awk '{print $2}' /proc/mounts | grep /mnt/gentoo | sort -r | xargs umount || true
 
 - name: "Create partition table"
   command: "parted --script --align optimal /dev/{{ main_block_device }} -- mklabel gpt"
 
+- name: "Create UEFI boot partition"
+  command: "parted --script --align optimal /dev/{{ main_block_device }} -- mkpart uefi_boot fat32 1MiB 513MiB"
+  when: stat_of_uefi_directory.stat.isdir is defined and stat_of_uefi_directory.stat.isdir
+
 - name: "Create BIOS boot partition"
   command: "parted --script --align optimal /dev/{{ main_block_device }} -- mkpart bios_boot fat32 1MiB 5MiB"
+  when: stat_of_uefi_directory.stat.isdir is not defined
+
+- name: "Set UEFI boot partition"
+  command: "parted --script --align optimal /dev/{{ main_block_device }} -- set 1 boot on"
+  when: stat_of_uefi_directory.stat.isdir is defined and stat_of_uefi_directory.stat.isdir
 
 - name: "Set BIOS boot partition"
   command: "parted --script --align optimal /dev/{{ main_block_device }} -- set 1 bios_grub on"
+  when: stat_of_uefi_directory.stat.isdir is not defined
 
-- name: "Create filesystem for grub2"
-  filesystem: fstype=vfat dev=/dev/{{ main_block_device }}1
+- name: "Create swap partition"
+  command: "parted --script --align optimal /dev/{{ main_block_device }} -- mkpart swap linux-swap 513MiB {{ swap_size }}"
+  when: stat_of_uefi_directory.stat.isdir is defined and stat_of_uefi_directory.stat.isdir
 
 - name: "Create swap partition"
   command: "parted --script --align optimal /dev/{{ main_block_device }} -- mkpart swap linux-swap 5MiB {{ swap_size }}"
+  when: stat_of_uefi_directory.stat.isdir is not defined
 
 - name: "Create filesystem for swap"
   command: mkswap /dev/{{ main_block_device }}2
@@ -59,6 +75,22 @@
     fstype=btrfs
     opts=defaults,subvol=gentoo,compress=lzo,autodefrag
     state=mounted
+
+- name: "Create mount point for /boot/efi"
+  file: >
+    path=/mnt/gentoo/boot/efi
+    state=directory
+  when: stat_of_uefi_directory.stat.isdir is defined and stat_of_uefi_directory.stat.isdir
+
+- name: "Mount /boot/efi"
+  when: stat_of_uefi_directory.stat.isdir is defined and stat_of_uefi_directory.stat.isdir
+  mount: >
+    name=/mnt/gentoo/boot/efi
+    src=/dev/{{ main_block_device }}1
+    fstype=vfat
+    opts=defaults
+    state=mounted
+  when: stat_of_uefi_directory.stat.isdir is defined and stat_of_uefi_directory.stat.isdir
 
 - name: "Create mount point for /var/log"
   file: >
@@ -221,17 +253,21 @@
     - vixie-cron
     - ntpd
     - sshd
-    - sssd
-    - zabbix-agentd
 
 - name: "Install kernel"
   command: >
     creates=/mnt/gentoo/boot/kernel-genkernel-*
     chroot /mnt/gentoo /bin/bash -c 'env-update && source /etc/profile && genkernel --makeopts=-j$(nproc) all'
 
-- name: "Install boot loader"
+- name: "Install boot loader for UEFI"
+  command: >
+    chroot /mnt/gentoo /bin/bash -c 'env-update && source /etc/profile && grub2-install --target=x86_64-efi'
+  when: stat_of_uefi_directory.stat.isdir is defined and stat_of_uefi_directory.stat.isdir
+
+- name: "Install boot loader for BIOS"
   command: >
     chroot /mnt/gentoo /bin/bash -c 'env-update && source /etc/profile && grub2-install /dev/{{ main_block_device }}'
+  when: stat_of_uefi_directory.stat.isdir is not defined
 
 - name: "Configure boot loader"
   command: >
