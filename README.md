@@ -11,12 +11,14 @@ $ sudo pip install virtualenv
 $ export PIP_RESPECT_VIRTUALENV=true
 $ export PATH="${HOME}/.local/bin:${PATH}"
 $ export PYTHONPATH="${HOME}/.local/lib64/python2.7/site-packages:${PYTHONPATH}"
+$ git clone https://github.com/mazgi/ansible-gentooinstallbattle.git
+# cd ansible-gentooinstallbattle
 $ virtualenv --no-site-packages --distribute --python=$(which python2.7) .
 $ source bin/activate
 (envdir)$ pip install -r requirements.txt
 ```
 
-### How To Use
+### How To Play
 
 ```shellsession
 $ export PIP_RESPECT_VIRTUALENV=true
