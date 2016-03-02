@@ -1,0 +1,26 @@
+# /etc/nsswitch.conf:
+# $Header: /var/cvsroot/gentoo/src/patchsets/glibc/extra/etc/nsswitch.conf,v 1.1 2006/09/29 23:52:23 vapier Exp $
+
+passwd:      compat sss
+shadow:      compat sss
+group:       compat sss
+
+# passwd:    db files nis
+# shadow:    db files nis
+# group:     db files nis
+
+hosts:       files dns
+networks:    files dns
+
+services:    db files sss
+protocols:   db files
+rpc:         db files
+ethers:      db files
+netmasks:    files
+netgroup:    files sss
+bootparams:  files
+
+automount:   files
+aliases:     files
+
+sudoers:     files sss
