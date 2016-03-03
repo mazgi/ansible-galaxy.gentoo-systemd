@@ -20,6 +20,10 @@
   command: "parted --script --align optimal /dev/{{ main_block_device }} -- set 1 boot on"
   when: stat_of_uefi_directory.stat.isdir is defined and stat_of_uefi_directory.stat.isdir
 
+- name: "Create filesystem for UEFI boot"
+  command: mkfs.vfat -F32 /dev/{{ main_block_device }}1
+  when: stat_of_uefi_directory.stat.isdir is defined and stat_of_uefi_directory.stat.isdir
+
 - name: "Set BIOS boot partition"
   command: "parted --script --align optimal /dev/{{ main_block_device }} -- set 1 bios_grub on"
   when: stat_of_uefi_directory.stat.isdir is not defined
@@ -191,11 +195,20 @@
     state=directory
   with_lines: find {{ role_path }}/templates -type d
 
-- name: "Place files into /etc"
+- name: "Place files into /"
   template: >
     src={{ item }}
     dest={{ item | regex_replace('^('+role_path+'/templates)(.*)(\.j2$)',"/mnt/gentoo\\2") }}
   with_lines: find {{ role_path }}/templates -type f -name '*.j2'
+
+- name: "Add UEFI partition into fstab"
+  lineinfile: >
+    state=present
+    backup=no
+    dest=/mnt/gentoo/etc/fstab
+    insertafter='^# NOTE: If your BOOT partition is ReiserFS, add the notail option to opts\.$'
+    line="/dev/{{ main_block_device }}1\t/boot/efi\tvfat\tdefault\t\t1 2"
+  when: stat_of_uefi_directory.stat.isdir is defined and stat_of_uefi_directory.stat.isdir
 
 - name: "Set attr to files"
   file: path=/mnt/gentoo/{{ item.path }} mode={{ item.mode }}
