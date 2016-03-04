@@ -20,6 +20,13 @@ $ source bin/activate
 
 ### How To Play
 
+#### Boot up your machine
+
+First, boot up your machine from [SystemRescueCd](https://www.system-rescue-cd.org/SystemRescueCd_Homepage).  
+And you should set up at least one network for SSH connection.
+
+#### Run ansible-playbook from your Control Machine
+
 ```shellsession
 $ export PIP_RESPECT_VIRTUALENV=true
 $ export PATH="${HOME}/.local/bin:${PATH}"
