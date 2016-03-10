@@ -1,5 +1,5 @@
 ansible_python_interpreter: "/usr/bin/python2"
-main_block_device: "{% set found = False %}{% for node in ansible_devices.keys() %}{% if ansible_devices[node].removable == '0' and not found %}{{ node }}{% set fount = True %}{% endif %}{% endfor %}"
+main_block_device: "{% set found = False %}{% for node in ansible_devices.keys() %}{% if ansible_devices[node].removable == '0' and not found %}{{ node }}{% set found = True %}{% endif %}{% endfor %}"
 swap_size: "2GiB"
 hostname: "{{ ansible_hostname }}"
 localtime_zone: "Japan"
