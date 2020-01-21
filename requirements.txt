@@ -4,6 +4,6 @@ Jinja2==2.8
 MarkupSafe==0.23
 paramiko==1.16.0
 pycrypto==2.6.1
-PyYAML==3.11
+PyYAML==5.1
 virtualenv==13.1.2
 wheel==0.24.0
