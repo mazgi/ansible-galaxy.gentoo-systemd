@@ -1,8 +1,0 @@
-.Python
-site.*.retry
-/bin/
-/include/
-/lib/
-/lib64
-pip-selfcheck.json
-/host_vars/
