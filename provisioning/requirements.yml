@@ -1,0 +1,6 @@
+collections:
+  - name: community.general
+- src: mazgi.onepassword_cli
+  version: 2020.9.0
+# - src: mazgi.cargo_make
+#   version: 2020.9.0

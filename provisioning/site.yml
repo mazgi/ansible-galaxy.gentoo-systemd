@@ -1,0 +1,23 @@
+---
+- name: set up the gentoo
+  hosts: all
+  user: root
+  vars:
+    main_block_device: "{{ main_block_device }}"
+    new_hostname: "{{ new_hostname }}"
+    new_root_password: "{{ new_root_password }}"
+  vars_prompt:
+    - name: main_block_device
+      default: sda
+      private: no
+      prompt: "Please type the main device name"
+    - name: network_interface_name_pattern
+      default: eth*
+      private: no
+      prompt: "Please type the network interface name pattern"
+    - name: new_root_password
+      private: yes
+      prompt: "Please type new root password"
+  roles:
+    - role: install
+      user: root

@@ -1,0 +1,34 @@
+version: "3.8"
+services:
+  provisioning:
+    build:
+      context: Dockerfile.d/provisioning
+      args:
+        UID: ${UID:-0}
+        GID: ${GID:-0}
+    command:
+      - zsh
+      - -ic
+      - |
+        ansible-galaxy install -r requirements.yml
+    environment:
+      ANSIBLE_CONFIG: /project/config/${CURRENT_ENV_NAME}/ansible.cfg
+      CURRENT_ENV_NAME:
+    user: "${UID:-0}:${GID:-0}"
+    volumes:
+      - provisioning-home-root:/root # for macOS
+      - provisioning-home-developer:/home/developer
+      - /var/run/docker.sock:/var/run/docker.sock
+      - ${HOME}/.ssh:/root/.ssh:ro # for macOS
+      - ${HOME}/.ssh:/home/developer/.ssh:ro
+      - ./Dockerfile.d:/project/Dockerfile.d
+      - ./config:/project/config
+      - ./provisioning:/project/workspace
+      - ./scripts:/project/scripts
+      - ./tmp/provisioning:/tmp/provisioning
+    working_dir: /project/workspace
+volumes:
+  provisioning-home-root:
+    driver: local
+  provisioning-home-developer:
+    driver: local
