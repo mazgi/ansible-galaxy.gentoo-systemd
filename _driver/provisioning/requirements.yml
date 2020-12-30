@@ -1,0 +1,5 @@
+collections:
+  - name: community.general
+roles:
+  - src: mazgi.onepassword_cli
+    version: 2020.9.0

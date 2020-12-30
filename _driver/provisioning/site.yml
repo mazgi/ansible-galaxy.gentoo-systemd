@@ -19,5 +19,5 @@
       private: yes
       prompt: "Please type new root password"
   roles:
-    - role: install
+    - role: /project/workspace
       user: root

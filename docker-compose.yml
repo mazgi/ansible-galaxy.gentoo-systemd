@@ -10,7 +10,7 @@ services:
       - zsh
       - -ic
       - |
-        ansible-galaxy install -r requirements.yml
+        ansible-galaxy install -r /project/provisioning/requirements.yml
     environment:
       ANSIBLE_CONFIG: /project/config/${CURRENT_ENV_NAME}/ansible.cfg
       CURRENT_ENV_NAME:
@@ -18,14 +18,13 @@ services:
     volumes:
       - provisioning-home-root:/root # for macOS
       - provisioning-home-developer:/home/developer
-      - /var/run/docker.sock:/var/run/docker.sock
       - ${HOME}/.ssh:/root/.ssh:ro # for macOS
       - ${HOME}/.ssh:/home/developer/.ssh:ro
-      - ./Dockerfile.d:/project/Dockerfile.d
-      - ./config:/project/config
-      - ./provisioning:/project/workspace
-      - ./scripts:/project/scripts
-      - ./tmp/provisioning:/tmp/provisioning
+      - .:/project/workspace
+      - ./_driver/config:/project/config
+      - ./_driver/provisioning:/project/provisioning
+      - ./_driver/scripts:/project/scripts
+      - ./_driver/tmp/provisioning:/tmp/provisioning
     working_dir: /project/workspace
 volumes:
   provisioning-home-root:

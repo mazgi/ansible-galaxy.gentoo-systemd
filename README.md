@@ -42,7 +42,7 @@ ssh-keygen -R 192.0.2.1
 ```
 
 ```shellsession
-❯ ssh 192.0.2.1 -l root
+ssh 192.0.2.1 -l root
 ```
 
 Now you can make provisioning as follows.
@@ -50,5 +50,5 @@ Now you can make provisioning as follows.
 ```shellsession
 docker-compose up
 docker-compose run provisioning ansible --inventory 192.0.2.1, --user root --module-name ping all
-docker-compose run provisioning ansible-playbook --inventory 192.0.2.1, site.yml
+docker-compose run provisioning ansible-playbook --inventory 192.0.2.1, /project/provisioning/site.yml
 ```
