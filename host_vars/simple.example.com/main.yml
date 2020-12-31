@@ -1,2 +1,0 @@
-portage:
-  portage_binhost: "ftp://foo:foopass@binhost.example.com"

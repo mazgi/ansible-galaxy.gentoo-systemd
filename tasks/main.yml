@@ -1,0 +1,408 @@
+- name: Verify the filesystems
+  block:
+    - name: Verify the partition table
+      changed_when: no
+      ignore_errors: yes
+      shell: >
+        parted --list --machine /dev/{{ main_block_device }} 2> /dev/null | grep -A 3 -E '^/dev/{{ main_block_device }}:'
+        | grep -E '^/dev/{{ main_block_device }}:.*:gpt:'
+      register: exists_gpt_partition_table
+    - name: Verify the UEFI partition
+      changed_when: no
+      ignore_errors: yes
+      shell: >
+        parted --list --machine /dev/{{ main_block_device }} 2> /dev/null | grep -A 3 -E '^/dev/{{ main_block_device }}:'
+        | grep -E '^1:.*:fat32:.*:boot, esp;'
+      register: exists_uefi_partition
+    - name: Verify the swap partition
+      changed_when: no
+      ignore_errors: yes
+      shell: >
+        parted --list --machine /dev/{{ main_block_device }} 2> /dev/null | grep -A 3 -E '^/dev/{{ main_block_device }}:'
+        | grep -E '^2:.*:swap:'
+      register: exists_swap_partition
+    - name: Verify the main partition
+      changed_when: no
+      ignore_errors: yes
+      shell: >
+        parted --list --machine /dev/{{ main_block_device }} 2> /dev/null | grep -A 3 -E '^/dev/{{ main_block_device }}:'
+        | grep -E '^3:.*:btrfs:'
+      register: exists_main_partition
+  tags:
+    - debug_passed
+
+- name: Set up filesystems
+  block:
+    - name: "Unmount all"
+      changed_when: no
+      ignore_errors: yes
+      shell: awk '{print $2}' /proc/mounts | grep /mnt/gentoo | sort -r | xargs umount
+    - name: Create the GPT partition table
+      command: |
+        parted --script --align optimal /dev/{{ main_block_device }} -- mklabel gpt
+      when: exists_gpt_partition_table is failed
+    - name: Create the UEFI partition
+      command: |
+        parted --script --align optimal /dev/{{ main_block_device }} -- mkpart uefi_boot fat32 1MiB 128MiB
+      when: exists_uefi_partition is failed
+    - name: Set the UEFI partition type
+      command: |
+        parted --script --align optimal /dev/{{ main_block_device }} -- set 1 esp on
+      when: exists_uefi_partition is failed
+    - name: Format the UEFI partition
+      filesystem:
+        dev: /dev/{{ main_block_device }}1
+        fstype: vfat
+        opts: -F32
+      when: exists_uefi_partition is failed
+    - name: Create the swap partition
+      command: |
+        parted --script --align optimal /dev/{{ main_block_device }} -- mkpart swap linux-swap 128MiB 2GiB
+      when: exists_swap_partition is failed
+    - name: Make swap
+      filesystem:
+        dev: /dev/{{ main_block_device }}2
+        fstype: swap
+      when: exists_swap_partition is failed
+    - name: Create the main partition
+      command: |
+        parted --script --align optimal /dev/{{ main_block_device }} -- mkpart gentoo btrfs 2GiB 100%
+      when: exists_main_partition is failed
+    - name: Format the main partition
+      filesystem:
+        dev: /dev/{{ main_block_device }}3
+        fstype: btrfs
+      when: exists_main_partition is failed
+  when: exists_gpt_partition_table is failed or exists_uefi_partition is failed or exists_swap_partition is failed or exists_main_partition is failed
+  tags:
+    - debug_passed
+
+- name: Create the subvols in the main partition
+  block:
+    - name: Create the mount point to create btrfs subvolumes
+      changed_when: no
+      file:
+        path: /mnt/btrfs
+        state: directory
+    - name: Mount the main volume to create subvols
+      changed_when: no
+      mount:
+        fstype: btrfs
+        name: /mnt/btrfs
+        src: /dev/{{ main_block_device }}3
+        state: mounted
+    - name: Create subvols
+      command: |
+        btrfs subvolume create /mnt/btrfs/{{ item }}
+      args:
+        creates: /mnt/btrfs/{{ item }}
+      with_items:
+        - gentoo
+        - var-log
+    - name: Unmount the main volume
+      changed_when: no
+      mount:
+        fstype: btrfs
+        name: /mnt/btrfs
+        src: /dev/{{ main_block_device }}3
+        state: unmounted
+  tags:
+    - debug_passed
+
+- name: Mount filesystems
+  block:
+    - name: Mount /
+      mount:
+        fstype: btrfs
+        name: /mnt/gentoo
+        opts: defaults,subvol=gentoo
+        src: /dev/{{ main_block_device }}3
+        state: mounted
+    - name: Create the mount point for /boot
+      file:
+        path: /mnt/gentoo/boot
+        state: directory
+    - name: Mount /boot
+      mount:
+        fstype: vfat
+        name: /mnt/gentoo/boot
+        opts: defaults
+        src: /dev/{{ main_block_device }}1
+        state: mounted
+    - name: Create the mount point for /var/log
+      file:
+        path: /mnt/gentoo/var/log
+        state: directory
+    - name: Mount /var/log
+      mount:
+        fstype: btrfs
+        name: /mnt/gentoo/var/log
+        opts: defaults,subvol=var-log
+        src: /dev/{{ main_block_device }}3
+        state: mounted
+  tags:
+    - debug_passed
+
+- name: Download and extract gentoo stage3 archive
+  block:
+    - name: Verify exists system
+      changed_when: no
+      shell: >
+        ! grep -E '^ID=gentoo$' /mnt/gentoo/etc/os-release
+    - name: Download latest-stage3.txt
+      get_url:
+        dest: /mnt/gentoo/
+        url: "{{ portage.mirror_uri }}/releases/amd64/autobuilds/latest-stage3-amd64-systemd.txt"
+    - name: Get stage3 filename
+      changed_when: no
+      shell: >
+        grep -vE '^\s*(#|$)' /mnt/gentoo/latest-stage3-amd64-systemd.txt | awk '{print $1}'
+      register: latest_stage3_filename
+    - name: Download latest stage3 DIGESTS
+      get_url:
+        dest: /mnt/gentoo/
+        url: "{{ portage.mirror_uri }}/releases/amd64/autobuilds/{{ latest_stage3_filename.stdout }}.DIGESTS"
+    - name: Verify exists stage3 archive
+      changed_when: no
+      ignore_errors: yes
+      shell: >
+        sha512sum --check /mnt/gentoo/{{ latest_stage3_filename.stdout | basename }}.DIGESTS 2> /dev/null | grep -E '^{{ latest_stage3_filename.stdout | basename }}:\s+OK$'
+      args:
+        chdir: /mnt/gentoo/
+      register: latest_stage3_archive_verified
+    - name: Download latest stage3 archive
+      get_url:
+        dest: /mnt/gentoo/
+        url: "{{ portage.mirror_uri }}/releases/amd64/autobuilds/{{ latest_stage3_filename.stdout }}"
+      when: latest_stage3_archive_verified is failed
+    - name: Download portage snapshot archive
+      get_url:
+        dest: /mnt/gentoo/
+        url: "{{ portage.mirror_uri }}/snapshots/portage-latest.tar.xz"
+    - name: Unarchive stage3
+      unarchive:
+        copy: no
+        extra_opts:
+          - --numeric-owner
+          - --xattrs-include='*.*'
+        dest: /mnt/gentoo
+        src: /mnt/gentoo/{{ latest_stage3_filename.stdout | basename }}
+  rescue:
+    - name: Found a gentoo system
+      debug:
+        msg: Found a gentoo system, probably you already extract the stage3.
+  tags:
+    - debug_passed
+
+- name: Download and extract gentoo stage3 archive
+  block:
+    - name: Check that the manifest file exists
+      stat:
+        path: /mnt/gentoo/var/db/repos/gentoo/Manifest
+      register: portage_manifest_file
+    - name: Create the directory for portage snapshot
+      file:
+        path: /mnt/gentoo/var/db/repos/gentoo
+        state: directory
+    - name: Unarchive portage snapshot
+      unarchive:
+        copy: no
+        creates: /mnt/gentoo/var/db/repos/gentoo/Manifest
+        extra_opts:
+          - --strip-components=1
+        dest: /mnt/gentoo/var/db/repos/gentoo/
+        src: /mnt/gentoo/portage-latest.tar.xz
+      when: portage_manifest_file.stat.exists == False
+  tags:
+    - debug_passed
+
+- name: Mount filesystems for chroot
+  block:
+    - name: Mount /dev
+      mount:
+        fstype: none
+        name: /mnt/gentoo/dev
+        opts: rbind,make-rslave
+        src: /dev
+        state: mounted
+    - name: Mount /sys
+      mount:
+        fstype: none
+        name: /mnt/gentoo/sys
+        opts: rbind,make-rslave
+        src: /sys
+        state: mounted
+    - name: Mount /proc
+      mount:
+        fstype: proc
+        src: none
+        name: /mnt/gentoo/proc
+        state: mounted
+  tags:
+    - debug_passed
+
+- name: Copy files for chroot
+  block:
+    - name: Create directories by the templates
+      file:
+        path: "{{ item | regex_replace('^('+role_path+'/templates)(.*)', \"/mnt/gentoo\\2\") }}"
+        state: directory
+      with_lines: find {{ role_path }}/templates -type d
+    - name: Apply templates
+      template:
+        dest: "{{ item | regex_replace('^('+role_path+'/templates)(.*)(.j2$)', \"/mnt/gentoo\\2\") }}"
+        src: "{{ item }}"
+      with_lines: find {{ role_path }}/templates -type f -name '*.j2'
+    - name: Copy resolv.conf
+      copy:
+        dest: /mnt/gentoo/etc/resolv.conf
+        src: /etc/resolv.conf
+        remote_src: yes
+  tags:
+    - debug_passed
+    # - debug_current
+
+- name: Set the root password
+  block:
+    - name: Check the root password that already set
+      changed_when: no
+      ignore_errors: yes
+      shell: >
+        grep -E '^root:[^\*]*:0:::::$' /mnt/gentoo/etc/shadow
+      register: root_password_already_set
+    - name: Set the root password
+      shell: >
+        chroot /mnt/gentoo /bin/bash -c 'source /etc/profile && echo "root:{{ new_root_password }}" | chpasswd'
+      when: root_password_already_set is failed
+  tags:
+    - debug_passed
+
+- name: Register root authrized key
+  authorized_key:
+    key: "{{ lookup('file', item) }}"
+    path: /mnt/gentoo/root/.ssh/authorized_keys
+    user: root
+  with_fileglob: "~/.ssh/*.pub"
+  tags:
+    - debug_passed
+
+- name: Set up the locales
+  block:
+    - name: Generate locales
+      changed_when:
+        - '" Adding locales to archive ..." in _result.stdout'
+      shell: >
+        chroot /mnt/gentoo /bin/bash -lc 'locale-gen --update'
+      register: _result
+  tags:
+    - debug_passed
+
+- name: Install packages
+  block:
+    - name: Mark all news as read for detect packages
+      changed_when: no
+      shell: >
+        chroot /mnt/gentoo /bin/bash -lc 'eselect news read all'
+    - name: Verify basic packages
+      changed_when: no
+      ignore_errors: yes
+      shell: >
+        chroot /mnt/gentoo /bin/bash -lc 'emerge -puNq @world'
+      register: packages_that_require_to_install
+    - name: Install basic packages
+      shell: >
+        chroot /mnt/gentoo /bin/bash -lc 'emerge -uNq @world'
+      when: packages_that_require_to_install.stdout_lines | length > 0
+  tags:
+    - debug_passed
+
+- name: Build the kernel
+  shell: >
+    chroot /mnt/gentoo /bin/bash -lc 'genkernel --kernel-config=/etc/kernels/kernel-config-gentoo-x86_64 --makeopts=-j$(nproc) all'
+  args:
+    creates: /mnt/gentoo/boot/initramfs-*-x86_64.img
+  tags:
+    - debug_passed
+
+- name: Set up the UEFI bootloader
+  block:
+    - name: Create the directory for UEFI
+      file:
+        path: /mnt/gentoo/boot/EFI/Gentoo
+        state: directory
+    - name: Get the latest kernel
+      changed_when: no
+      shell: >
+        \ls -t1 /mnt/gentoo/boot/vmlinuz-*-x86_64 | head -1
+      register: latest_vmlinuz
+    - name: Copy the kernel
+      copy:
+        dest: /mnt/gentoo/boot/EFI/Gentoo/vmlinuz-gentoo.efi
+        src: "{{ latest_vmlinuz.stdout }}"
+        remote_src: yes
+    - name: Get the latest initramfs image
+      changed_when: no
+      shell: >
+        \ls -t1 /mnt/gentoo/boot/initramfs-*-x86_64.img | head -1
+      register: latest_initramfs
+    - name: Copy the initramfs image
+      copy:
+        dest: /mnt/gentoo/boot/EFI/Gentoo/initramfs-gentoo.img
+        src: "{{ latest_initramfs.stdout }}"
+        remote_src: yes
+    - name: Verify the UEFI bootnum
+      changed_when: no
+      ignore_errors: yes
+      shell: >
+        efibootmgr | grep -E '^Boot[0-9]+\* Gentoo$'
+      register: exists_uefi_bootnum
+    - name: Create the UEFI boot entry
+      shell: >
+        chroot /mnt/gentoo /bin/bash -lc 'efibootmgr --create --part 1 --disk /dev/{{ main_block_device }} --label Gentoo --loader "\\EFI\\Gentoo\\vmlinuz-gentoo.efi" --unicode "root=/dev/{{ main_block_device }}3 rootflags=subvol=gentoo rootfstype=btrfs initrd=\\EFI\\Gentoo\\initramfs-gentoo.img"'
+      when: exists_uefi_bootnum is failed
+    - name: Get the UEFI bootnum
+      changed_when: no
+      ignore_errors: yes
+      shell: >
+        efibootmgr | grep -E '^Boot[0-9]+\* Gentoo$' | sed -e 's/^Boot\([0-9]\+\).*$/\1/'
+      register: uefi_bootnum
+    - name: Verify the UEFI bootorder
+      changed_when: no
+      ignore_errors: yes
+      shell: >
+        efibootmgr | grep -E '^BootOrder:\s+{{ uefi_bootnum.stdout }}[,$]'
+      register: uefi_first_bootnum_is_verified
+    - name: Set the UEFI bootorder
+      shell: >
+        chroot /mnt/gentoo /bin/bash -c 'source /etc/profile && efibootmgr --bootorder {{ uefi_bootnum.stdout }}'
+      when: uefi_first_bootnum_is_verified is failed
+  tags:
+    - debug_passed
+
+- name: Configure services
+  block:
+    - name: Get services configurations
+      changed_when: no
+      ignore_errors: yes
+      shell: >
+        chroot /mnt/gentoo /bin/bash -c
+        'source /etc/profile\
+         && systemctl is-enabled {{ item }}'
+      register: services_configurations
+      failed_when: no
+      with_items:
+        - sshd.service
+        - systemd-networkd.service
+    - name: Set to start systemd services
+      shell: >
+        chroot /mnt/gentoo /bin/bash -c
+        'source /etc/profile\
+         && systemctl enable {{ item.item }}'
+      when: item.stdout != 'enabled'
+      with_items: "{{ services_configurations.results }}"
+  tags:
+    - debug_passed
+    # - debug_current
+# - name: "Reboot system"
+#   command: reboot
+#   when: restart_after_installation | lower == "yes"

@@ -1,36 +1,54 @@
-# Ansible GentooInstallBattle
+# gentoo-systemd-remote
 
-## How To Use
+[![default](https://github.com/mazgi/gentoo-systemd-remote/workflows/default/badge.svg)](https://github.com/mazgi/gentoo-systemd-remote/actions?query=workflow%3Adefault)
 
-### How To install
+## How to set up
+
+### How to set up your local environment
+
+You need create the `.env` file as follows.
 
 ```shellsession
-$ brew install https://raw.githubusercontent.com/kadwanev/bigboybrew/master/Library/Formula/sshpass.rb
-$ sudo easy_install pip
-$ sudo pip install virtualenv
-$ export PIP_RESPECT_VIRTUALENV=true
-$ export PATH="${HOME}/.local/bin:${PATH}"
-$ export PYTHONPATH="${HOME}/.local/lib64/python2.7/site-packages:${PYTHONPATH}"
-$ git clone https://github.com/mazgi/ansible-gentooinstallbattle.git
-# cd ansible-gentooinstallbattle
-$ virtualenv --no-site-packages --distribute --python=$(which python2.7) .
-$ source bin/activate
-(envdir)$ pip install -r requirements.txt
+rm -f .env
+test $(uname -s) = 'Linux' && echo "UID=$(id -u)\nGID=$(id -g)" >> .env
+cat<<EOE >> .env
+CURRENT_ENV_NAME=production
+DOCKER_GID=$(getent group docker | cut -d : -f 3)
+EOE
 ```
 
-### How To Play
+## How to run
 
-#### Boot up your machine
-
-First, boot up your machine from [SystemRescueCd](https://www.system-rescue-cd.org/SystemRescueCd_Homepage).  
-And you should set up at least one network for SSH connection.
-
-#### Run ansible-playbook from your Control Machine
+https://www.system-rescue.org/manual/Booting_SystemRescueCd/
 
 ```shellsession
-$ export PIP_RESPECT_VIRTUALENV=true
-$ export PATH="${HOME}/.local/bin:${PATH}"
-$ export PYTHONPATH="${HOME}/.local/lib64/python2.7/site-packages:${PYTHONPATH}"
-$ source bin/activate
-(envdir)$ ansible-playbook -i 10.11.12.13, site.gentooinstallbattle.yml
+rootpass=pass nofirewall
+```
+
+```shellsession
+ssh-keygen
+```
+
+```shellsession
+curl -L github.com/mazgi.keys > ~/.ssh/authorized_keys
+```
+
+```shellsession
+ip a show
+```
+
+```shellsession
+ssh-keygen -R 192.0.2.1
+```
+
+```shellsession
+ssh 192.0.2.1 -l root
+```
+
+Now you can make provisioning as follows.
+
+```shellsession
+docker-compose up
+docker-compose run provisioning ansible --inventory 192.0.2.1, --user root --module-name ping all
+docker-compose run provisioning ansible-playbook --inventory 192.0.2.1, /project/provisioning/site.yml
 ```
