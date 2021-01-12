@@ -391,6 +391,7 @@
       register: services_configurations
       failed_when: no
       with_items:
+        - docker.service
         - sshd.service
         - systemd-networkd.service
     - name: Set to start systemd services
