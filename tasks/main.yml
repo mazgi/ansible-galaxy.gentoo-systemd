@@ -1,3 +1,7 @@
+- name: Set block device partition prefix
+  set_fact:
+    main_block_device_partition_prefix: "{% if main_block_device.startswith('nvme') %}{{ main_block_device }}p{% else %}{{ main_block_device }}{% endif %}"
+
 - name: Verify the filesystems
   block:
     - name: Verify the partition table
@@ -51,7 +55,7 @@
       when: exists_uefi_partition is failed
     - name: Format the UEFI partition
       filesystem:
-        dev: /dev/{{ main_block_device }}1
+        dev: /dev/{{ main_block_device_partition_prefix }}1
         fstype: vfat
         opts: -F32
       when: exists_uefi_partition is failed
@@ -61,7 +65,7 @@
       when: exists_swap_partition is failed
     - name: Make swap
       filesystem:
-        dev: /dev/{{ main_block_device }}2
+        dev: /dev/{{ main_block_device_partition_prefix }}2
         fstype: swap
       when: exists_swap_partition is failed
     - name: Create the main partition
@@ -70,7 +74,7 @@
       when: exists_main_partition is failed
     - name: Format the main partition
       filesystem:
-        dev: /dev/{{ main_block_device }}3
+        dev: /dev/{{ main_block_device_partition_prefix }}3
         fstype: btrfs
       when: exists_main_partition is failed
   when: exists_gpt_partition_table is failed or exists_uefi_partition is failed or exists_swap_partition is failed or exists_main_partition is failed
@@ -89,7 +93,7 @@
       mount:
         fstype: btrfs
         name: /mnt/btrfs
-        src: /dev/{{ main_block_device }}3
+        src: /dev/{{ main_block_device_partition_prefix }}3
         state: mounted
     - name: Create subvols
       command: |
@@ -104,7 +108,7 @@
       mount:
         fstype: btrfs
         name: /mnt/btrfs
-        src: /dev/{{ main_block_device }}3
+        src: /dev/{{ main_block_device_partition_prefix }}3
         state: unmounted
   tags:
     - debug_passed
@@ -116,7 +120,7 @@
         fstype: btrfs
         name: /mnt/gentoo
         opts: defaults,subvol=gentoo
-        src: /dev/{{ main_block_device }}3
+        src: /dev/{{ main_block_device_partition_prefix }}3
         state: mounted
     - name: Create the mount point for /boot
       file:
@@ -127,7 +131,7 @@
         fstype: vfat
         name: /mnt/gentoo/boot
         opts: defaults
-        src: /dev/{{ main_block_device }}1
+        src: /dev/{{ main_block_device_partition_prefix }}1
         state: mounted
     - name: Create the mount point for /var/log
       file:
@@ -138,7 +142,7 @@
         fstype: btrfs
         name: /mnt/gentoo/var/log
         opts: defaults,subvol=var-log
-        src: /dev/{{ main_block_device }}3
+        src: /dev/{{ main_block_device_partition_prefix }}3
         state: mounted
   tags:
     - debug_passed
