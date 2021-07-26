@@ -48,12 +48,12 @@ ssh 192.0.2.1 -l root
 Now you can make provisioning as follows.
 
 ```shellsession
-docker-compose up
-docker-compose run provisioning ansible --inventory 192.0.2.1, --user root --module-name ping all
-docker-compose run provisioning ansible-playbook --inventory 192.0.2.1, /project/provisioning/site.yml
+docker compose up
+docker compose run provisioning ansible --inventory 192.0.2.1, --user root --module-name ping all
+docker compose run provisioning ansible-playbook --inventory 192.0.2.1, /project/provisioning/site.yml
 ```
 
 ```shellsession
-docker-compose run provisioning ansible-playbook --inventory 192.0.2.1, /project/provisioning/site.yml --start-at-task='Verify basic packages'
-docker-compose run provisioning ansible-playbook --inventory 192.0.2.1, /project/provisioning/site.yml --start-at-task='Build the kernel'
+docker compose run provisioning ansible-playbook --inventory 192.0.2.1, /project/provisioning/site.yml --start-at-task='Verify basic packages'
+docker compose run provisioning ansible-playbook --inventory 192.0.2.1, /project/provisioning/site.yml --start-at-task='Build the kernel'
 ```
