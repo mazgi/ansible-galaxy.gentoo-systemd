@@ -392,6 +392,15 @@
 
 - name: Configure services
   block:
+    - name: Generate the machine-id
+      shell: >
+        chroot /mnt/gentoo /bin/bash -lc 'systemd-machine-id-setup'
+      args:
+        creates: /mnt/gentoo/etc/machine-id
+    - name: Set the hostname
+      ansible.builtin.copy:
+        content: "{{ new_hostname }}"
+        dest: /mnt/gentoo/etc/hostname
     - name: Get services configurations
       changed_when: no
       ignore_errors: yes
@@ -402,6 +411,7 @@
       register: services_configurations
       failed_when: no
       with_items:
+        - avahi-daemon.service
         - docker.service
         - sshd.service
         - systemd-networkd.service
