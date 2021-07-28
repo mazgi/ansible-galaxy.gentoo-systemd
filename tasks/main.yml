@@ -320,11 +320,18 @@
   tags:
     - debug_passed
 
-- name: Build the kernel
-  shell: >
-    chroot /mnt/gentoo /bin/bash -lc 'genkernel --kernel-config=/etc/kernels/kernel-config-gentoo-x86_64 --makeopts=-j$(nproc) all'
-  args:
-    creates: /mnt/gentoo/boot/initramfs-*-x86_64.img
+- name: Install the kernel
+  block:
+    - name: Symlink the kernel
+      shell: >
+        chroot /mnt/gentoo /bin/bash -lc 'USE="symlink" emerge -q gentoo-sources'
+      args:
+        creates: /mnt/gentoo/usr/src/linux
+    - name: Build the kernel
+      shell: >
+        chroot /mnt/gentoo /bin/bash -lc 'genkernel --kernel-config=/etc/kernels/kernel-config-gentoo-x86_64 --makeopts=-j$(($(nproc)+1)) all'
+      args:
+        creates: /mnt/gentoo/boot/initramfs-*-x86_64.img
   tags:
     - debug_passed
 
@@ -362,7 +369,7 @@
       register: exists_uefi_bootnum
     - name: Create the UEFI boot entry
       shell: >
-        chroot /mnt/gentoo /bin/bash -lc 'efibootmgr --create --part 1 --disk /dev/{{ main_block_device }} --label Gentoo --loader "\\EFI\\Gentoo\\vmlinuz-gentoo.efi" --unicode "root=/dev/{{ main_block_device }}3 rootflags=subvol=gentoo rootfstype=btrfs initrd=\\EFI\\Gentoo\\initramfs-gentoo.img"'
+        chroot /mnt/gentoo /bin/bash -lc 'efibootmgr --create --part 1 --disk /dev/{{ main_block_device }} --label Gentoo --loader "\\EFI\\Gentoo\\vmlinuz-gentoo.efi" --unicode "root=/dev/{{ main_block_device_partition_prefix }}3 rootflags=subvol=gentoo rootfstype=btrfs initrd=\\EFI\\Gentoo\\initramfs-gentoo.img"'
       when: exists_uefi_bootnum is failed
     - name: Get the UEFI bootnum
       changed_when: no
