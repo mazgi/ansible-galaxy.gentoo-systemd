@@ -1,6 +1,6 @@
 # gentoo-systemd-remote
 
-[![default](https://github.com/mazgi/gentoo-systemd-remote/workflows/default/badge.svg)](https://github.com/mazgi/gentoo-systemd-remote/actions?query=workflow%3Adefault)
+[![default](https://github.com/mazgi/ansible-galaxy.gentoo-systemd-remote/workflows/default/badge.svg)](https://github.com/mazgi/ansible-galaxy.gentoo-systemd-remote/actions/workflows/default.yml)
 
 ## How to set up
 
