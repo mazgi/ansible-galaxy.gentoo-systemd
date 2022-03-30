@@ -53,6 +53,18 @@ docker compose run provisioning ansible --inventory 192.0.2.1, --user root --mod
 docker compose run provisioning ansible-playbook --inventory 192.0.2.1, /project/provisioning/site.yml
 ```
 
+And, you can use [`--extra-vars` args](https://docs.ansible.com/ansible/latest/user_guide/playbooks_variables.html#defining-variables-at-runtime) to provide your specific values for provisioning.
+
+```shellsession
+docker compose run provisioning ansible-playbook\
+ --inventory 192.0.2.1,\
+ --extra-vars '{"main_block_device":"sda","network_interface_name_pattern":"eth*"}'\
+ --extra-vars 'new_hostname=lin-work1-vm'\
+ /project/provisioning/site.yml
+```
+
+Moreover, you can start provisioning by a point you want using the [`--start-at-task` arg](https://docs.ansible.com/ansible/latest/user_guide/playbooks_startnstep.html#start-at-task).
+
 ```shellsession
 docker compose run provisioning ansible-playbook --inventory 192.0.2.1, /project/provisioning/site.yml --start-at-task='Verify basic packages'
 docker compose run provisioning ansible-playbook --inventory 192.0.2.1, /project/provisioning/site.yml --start-at-task='Build the kernel'
