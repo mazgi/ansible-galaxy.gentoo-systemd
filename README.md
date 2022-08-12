@@ -8,7 +8,7 @@
 
 You need create the `.env` file as follows.
 
-```shellsession
+```console
 rm -f .env
 test $(uname -s) = 'Linux' && echo "UID=$(id -u)\nGID=$(id -g)" >> .env
 cat<<EOE >> .env
@@ -21,43 +21,51 @@ EOE
 
 https://www.system-rescue.org/manual/Booting_SystemRescueCd/
 
-```shellsession
+```console
 rootpass=pass nofirewall
 ```
 
-```shellsession
+```console
 ssh-keygen
 ```
 
-```shellsession
-curl -L github.com/mazgi.keys > ~/.ssh/authorized_keys
+```console
+curl -L github.com/$YOUR_GITHUB_ACCOUNT.keys > ~/.ssh/authorized_keys
 ```
 
-```shellsession
+```console
 ip a show
 ```
 
-```shellsession
-ssh-keygen -R 192.0.2.1
+```console
+export TARGET_IPADDR=192.0.2.1
 ```
 
-```shellsession
-ssh 192.0.2.1 -l root
+```console
+ssh-keygen -R $TARGET_IPADDR
+```
+
+```console
+ssh $TARGET_IPADDR -l root
 ```
 
 Now you can make provisioning as follows.
 
-```shellsession
-docker compose up
-docker compose run provisioning ansible --inventory 192.0.2.1, --user root --module-name ping all
-docker compose run provisioning ansible-playbook --inventory 192.0.2.1, /project/provisioning/site.yml
+```console
+docker compose up --detach && docker compose logs --follow
+^c
+```
+
+```console
+docker compose exec provisioning ansible --inventory $TARGET_IPADDR, --user root --module-name ping all
+docker compose exec provisioning ansible-playbook --inventory $TARGET_IPADDR, /project/provisioning/site.yml
 ```
 
 And, you can use [`--extra-vars` args](https://docs.ansible.com/ansible/latest/user_guide/playbooks_variables.html#defining-variables-at-runtime) to provide your specific values for provisioning.
 
-```shellsession
+```console
 docker compose run provisioning ansible-playbook\
- --inventory 192.0.2.1,\
+ --inventory $TARGET_IPADDR,\
  --extra-vars '{"main_block_device":"sda","network_interface_name_pattern":"eth*"}'\
  --extra-vars 'new_hostname=lin-work1-vm'\
  /project/provisioning/site.yml
@@ -65,7 +73,7 @@ docker compose run provisioning ansible-playbook\
 
 Moreover, you can start provisioning by a point you want using the [`--start-at-task` arg](https://docs.ansible.com/ansible/latest/user_guide/playbooks_startnstep.html#start-at-task).
 
-```shellsession
-docker compose run provisioning ansible-playbook --inventory 192.0.2.1, /project/provisioning/site.yml --start-at-task='Verify basic packages'
-docker compose run provisioning ansible-playbook --inventory 192.0.2.1, /project/provisioning/site.yml --start-at-task='Build the kernel'
+```console
+docker compose run provisioning ansible-playbook --inventory $TARGET_IPADDR, /project/provisioning/site.yml --start-at-task='Verify basic packages'
+docker compose run provisioning ansible-playbook --inventory $TARGET_IPADDR, /project/provisioning/site.yml --start-at-task='Build the kernel'
 ```

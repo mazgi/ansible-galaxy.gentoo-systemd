@@ -11,6 +11,7 @@ services:
       - -ic
       - |
         ansible-galaxy install -r /project/provisioning/requirements.yml
+        sleep infinity
     environment:
       ANSIBLE_CONFIG: /project/config/${CURRENT_ENV_NAME}/ansible.cfg
       CURRENT_ENV_NAME:
