@@ -249,12 +249,12 @@
   block:
     - name: Create directories by the templates
       file:
-        path: "{{ item | regex_replace('^('+role_path+'/templates)(.*)', \"/mnt/gentoo\\2\") }}"
+        path: "{{ item | regex_replace('^('+role_path+'/templates/)(.*)', \"/mnt/gentoo/\\2\") }}"
         state: directory
       with_lines: find {{ role_path }}/templates -type d
     - name: Apply templates
       template:
-        dest: "{{ item | regex_replace('^('+role_path+'/templates)(.*)(.j2$)', \"/mnt/gentoo\\2\") }}"
+        dest: "{{ item | regex_replace('^('+role_path+'/templates/)(.*)(.j2$)', \"/mnt/gentoo/\\2\") }}"
         src: "{{ item }}"
       with_lines: find {{ role_path }}/templates -type f -name '*.j2'
     - name: Copy resolv.conf
@@ -365,7 +365,7 @@
       changed_when: no
       ignore_errors: yes
       shell: >
-        efibootmgr | grep -E '^Boot[0-9]+\* Gentoo$'
+        efibootmgr | grep -E '^Boot[0-9]+\* Gentoo\s+HD'
       register: exists_uefi_bootnum
     - name: Create the UEFI boot entry
       shell: >
@@ -375,7 +375,7 @@
       changed_when: no
       ignore_errors: yes
       shell: >
-        efibootmgr | grep -E '^Boot[0-9]+\* Gentoo$' | sed -e 's/^Boot\([0-9]\+\).*$/\1/'
+        efibootmgr | grep -E '^Boot[0-9]+\* Gentoo\s+HD' | sed -e 's/^Boot\([0-9]\+\).*$/\1/'
       register: uefi_bootnum
     - name: Verify the UEFI bootorder
       changed_when: no
