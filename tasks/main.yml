@@ -316,6 +316,9 @@
     - name: Install basic packages
       shell: >
         chroot /mnt/gentoo /bin/bash -lc 'emerge -uNq @world'
+      register: installed_basic_packages
+      until: "installed_basic_packages is not failed"
+      retries: 3
       when: packages_that_require_to_install.stdout_lines | length > 0
   tags:
     - debug_passed
@@ -332,6 +335,9 @@
         chroot /mnt/gentoo /bin/bash -lc 'genkernel --kernel-config=/etc/kernels/kernel-config-gentoo-x86_64 --makeopts=-j$(($(nproc)+1)) all'
       args:
         creates: /mnt/gentoo/boot/initramfs-*-x86_64.img
+      register: built_the_kernel
+      until: "built_the_kernel is not failed"
+      retries: 3
   tags:
     - debug_passed
 
