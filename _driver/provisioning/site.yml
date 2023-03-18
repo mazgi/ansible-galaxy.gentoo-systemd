@@ -3,6 +3,9 @@
   hosts: all
   user: root
   vars:
+    default_user_name: "{{ default_user_name }}"
+    default_user_password: "{{ default_user_password }}"
+    github_user_name: "{{ github_user_name }}"
     main_block_device: "{{ main_block_device }}"
     new_hostname: "{{ new_hostname }}"
     new_root_password: "{{ new_root_password }}"
@@ -22,6 +25,17 @@
     - name: new_root_password
       private: yes
       prompt: "Please type new root password"
+    - name: default_user_name
+      default: user
+      private: no
+      prompt: "Please type default user name"
+    - name: default_user_password
+      private: yes
+      prompt: "Please type default user password"
+    - name: github_user_name
+      default: octocat
+      private: no
+      prompt: "Please type the GitHub account name to get SSH pubkeys"
   roles:
     - role: /workspace
       user: root

@@ -323,6 +323,37 @@
   tags:
     - debug_passed
 
+- name: Create default user
+  block:
+    - name: Verify if the user exists
+      changed_when: no
+      ignore_errors: yes
+      shell: >
+        chroot /mnt/gentoo /bin/bash -lc 'id {{ default_user_name }}'
+      register: default_user_already_exists
+    - name: Create the user
+      shell: >
+        chroot /mnt/gentoo /bin/bash -lc 'useradd --create-home {{ default_user_name }} --gid users --groups wheel --key UID_MIN=10000 --shell /bin/zsh'
+      when: default_user_already_exists is failed
+    - name: Set the password for the user
+      shell: >
+        chroot /mnt/gentoo /bin/bash -lc 'source /etc/profile && echo "{{ default_user_name }}:{{ default_user_password }}" | chpasswd'
+    - name: Create the directory for SSH pubkeys
+      shell: >
+        chroot /mnt/gentoo /bin/bash -lc 'sudo --user={{ default_user_name }} bash -lc '"'mkdir -p ~/.ssh'"
+    - name: Get pubkeys from GitHub
+      shell: >
+        chroot /mnt/gentoo /bin/bash -lc 'sudo --user={{ default_user_name }} bash -lc '"'curl -L github.com/{{ github_user_name }}.keys > ~/.ssh/authorized_keys'"
+    - name: Create sudoers.d directory
+      shell: >
+        chroot /mnt/gentoo /bin/bash -lc 'mkdir -p /etc/sudoers.d'
+    - name: Set the permission to the sudoers.d directory
+      shell: >
+        chroot /mnt/gentoo /bin/bash -lc 'chmod 755 /etc/sudoers.d'
+    - name: Allow ALL to the wheel group
+      shell: >
+        chroot /mnt/gentoo /bin/bash -lc 'echo "%wheel ALL=(ALL:ALL) ALL" > /etc/sudoers.d/allow-all-to-wheel'
+
 - name: Install the kernel
   block:
     - name: Symlink the kernel
