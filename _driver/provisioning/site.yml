@@ -1,5 +1,5 @@
 ---
-- name: set up the gentoo
+- name: Install Gentoo Linux
   hosts: all
   user: root
   vars:
@@ -23,5 +23,5 @@
       private: yes
       prompt: "Please type new root password"
   roles:
-    - role: /project/workspace
+    - role: /workspace
       user: root

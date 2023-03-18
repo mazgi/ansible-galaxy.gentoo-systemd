@@ -1,34 +1,74 @@
-version: "3.8"
+# https://docs.docker.com/compose/compose-file/compose-file-v3/#extension-fields
+x-service-provisioning-base: &provisioning-base
+  build:
+    args:
+      GID: ${GID:-0}
+      UID: ${UID:-0}
+    context: Dockerfile.d/provisioning
+  command:
+    - zsh
+    - --login
+    - -c
+    - |
+      docker-util.keep-running.zsh --reset-status
+      ansible-galaxy install -r requirements.yml\
+      && docker-util.keep-running.zsh --record-success\
+      || {
+        docker-util.keep-running.zsh --record-failure
+        exit 1
+      }
+      docker-util.keep-running.zsh --wait-signals
+  environment:
+    ANSIBLE_CONFIG: /workspace/config/ansible.cfg
+  init: true
+  user: "${UID:-0}:${GID:-0}"
+  volumes:
+    - provisioning-home-developer:/home/developer
+    - provisioning-home-root:/root # for macOS & Windows
+    - provisioning-tmp:/tmp/provisioning
+    - /var/run/docker.sock:/var/run/docker.sock
+    - ${HOME}/.ssh:/root/.ssh:ro # for macOS & Windows
+    - ${HOME}/.ssh:/home/developer/.ssh:ro
+    - .:/workspace
+  working_dir: /workspace
+
 services:
+  # You are able to implement your service like below.
   provisioning:
+    <<: *provisioning-base
+    working_dir: /workspace/_driver/provisioning
+
+  # for Prettier Code Formatter
+  # ["INFO" - 00:00:00 AM] Attempted to determine module path from /path/to/the/project
+  # ["ERROR" - 00:00:00 AM] Failed to load module. If you have prettier or plugins referenced in package.json, ensure you have run `npm install`
+  # ["ERROR" - 00:00:00 AM] Cannot find module 'prettier' from '/path/to/the/project'
+  workspace:
     build:
-      context: Dockerfile.d/provisioning
       args:
-        UID: ${UID:-0}
         GID: ${GID:-0}
+        UID: ${UID:-0}
+      context: Dockerfile.d/workspace
     command:
       - zsh
-      - -ic
+      - --login
+      - -c
       - |
-        ansible-galaxy install -r /project/provisioning/requirements.yml
+        npm-check-updates --upgrade
+        npm install
+        npm audit fix
+        sort-package-json
         sleep infinity
-    environment:
-      ANSIBLE_CONFIG: /project/config/${CURRENT_ENV_NAME}/ansible.cfg
-      CURRENT_ENV_NAME:
-    user: "${UID:-0}:${GID:-0}"
+    init: true
+    user: ${UID:-0}:${GID:-0}
     volumes:
-      - provisioning-home-root:/root # for macOS
-      - provisioning-home-developer:/home/developer
-      - ${HOME}/.ssh:/root/.ssh:ro # for macOS
-      - ${HOME}/.ssh:/home/developer/.ssh:ro
-      - .:/project/workspace
-      - ./_driver/config:/project/config
-      - ./_driver/provisioning:/project/provisioning
-      - ./_driver/scripts:/project/scripts
-      - ./_driver/tmp/provisioning:/tmp/provisioning
-    working_dir: /project/workspace
+      - .:/workspace
+    working_dir: /workspace
+
+version: "3.9"
 volumes:
-  provisioning-home-root:
+  provisioning-tmp:
     driver: local
   provisioning-home-developer:
+    driver: local
+  provisioning-home-root:
     driver: local
