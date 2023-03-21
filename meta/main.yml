@@ -1,5 +1,5 @@
 galaxy_info:
-  role_name: gentoo-systemd-remote
+  role_name: gentoo_systemd_remote
   author: Hidenori Matsuki
   description: Set up Gentoo Linux via SSH
   issue_tracker_url: https://github.com/mazgi/ansible-galaxy.gentoo-systemd-remote
