@@ -1,0 +1,2 @@
+# for ansible.utils.ip
+netaddr==0.8.0

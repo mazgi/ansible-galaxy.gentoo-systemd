@@ -15,7 +15,7 @@ ENV DOCKER_GID=${DOCKER_GID}
 ENV GID=${GID:-0}
 ENV UID=${UID:-0}
 
-COPY rootfs /
+COPY Dockerfile.d/provisioning/rootfs /
 RUN :\
   && cd /usr/local/bin\
   && ln -fs echo-with-color.zsh echoDebug\
@@ -26,6 +26,12 @@ RUN :\
 
 HEALTHCHECK --interval=2s --timeout=1s --retries=2 --start-period=5s\
  CMD jq -e ". | select(.succeeded)" $(docker-util.keep-running.zsh --print-status-file-path)
+
+COPY requirements.txt requirements.yml /tmp/
+RUN : Ansible\
+  && pip3 install -r /tmp/requirements.txt\
+  && ansible-galaxy install -r /tmp/requirements.yml\
+  && :
 
 RUN : Terraform\
   # Install Terraform via tfenv

@@ -1,5 +1,0 @@
-portage:
-  mirror_uri: ftp://ftp.jaist.ac.jp/pub/Linux/Gentoo
-# See https://docs.ansible.com/ansible/latest/user_guide/playbooks_variables.html#understanding-variable-precedence
-main_block_device: sda
-network_interface_name_pattern: eth*
