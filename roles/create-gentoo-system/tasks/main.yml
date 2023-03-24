@@ -1,0 +1,11 @@
+- name: Set block device partition prefix
+  set_fact:
+    main_block_device_partition_prefix: "\
+      {% if user_data.setup_params.main_block_device_name.startswith('nvme') %}\
+      {{ user_data.setup_params.main_block_device_name }}p\
+      {% else %}\
+      {{ user_data.setup_params.main_block_device_name }}\
+      {% endif %}"
+
+- debug:
+    var: main_block_device_partition_prefix

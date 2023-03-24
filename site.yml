@@ -5,3 +5,4 @@
   roles:
     - role: validate-parameters
     - role: get-gentoo-archives
+    - role: create-gentoo-system
