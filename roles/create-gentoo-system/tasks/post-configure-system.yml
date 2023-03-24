@@ -1,0 +1,10 @@
+- name: Enable services
+  ansible.builtin.systemd:
+    enabled: true
+    name: >-
+      {{ item.name }}
+  with_items:
+    - name: avahi-daemon.service
+    - name: docker.service
+    - name: sshd.service
+    - name: systemd-networkd.service
