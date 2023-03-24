@@ -30,6 +30,7 @@
 - name: Set up the Gentoo System on chroot
   block:
     - import_tasks: pre-configure-system.yml
+    - import_tasks: install-basic-packages.yml
 
 - name: Restore the SSH port to default port
   set_fact:

@@ -1,0 +1,13 @@
+- name: Mark all news as read for detect packages
+  changed_when: no
+  command: eselect news read all
+
+- name: Install Packages using Gentoo Portage
+  community.general.portage:
+    name: >-
+      {{ item.name }}
+  environment:
+    USE: getbinpkg
+  retries: 3
+  with_items:
+    - name: app-text/tree
