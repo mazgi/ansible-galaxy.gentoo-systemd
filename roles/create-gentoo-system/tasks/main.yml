@@ -33,6 +33,15 @@
         -o ChrootDirectory=/mnt/gentoo
         -o SetEnv=PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/opt/bin
         -p {{ alt_sshd_port }}
+    # Get the PID using the shell module because Live CDs do not have `psutil`.
+    # > ModuleNotFoundError: No module named 'psutil'
+    - name: Get SSHd PID
+      changed_when: no
+      shell: >-
+        ps aux
+        | grep -E '/usr/sbin/sshd\s+-o\s+ChrootDirectory=/mnt/gentoo'
+        | awk '{print $2}'
+      register: alt_sshd_pid
     - name: Change the SSH port to the alt port
       set_fact:
         ansible_port: >-
@@ -51,3 +60,7 @@
   set_fact:
     ansible_port: >-
       {{ original_ansible_port }}
+- name: Stop SSHd
+  changed_when: no
+  command: >-
+    kill {{ alt_sshd_pid.stdout }}
