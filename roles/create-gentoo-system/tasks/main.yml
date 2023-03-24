@@ -15,6 +15,10 @@
 
 - name: Set up SSHd alt port
   block:
+    - name: Store the original SSH port
+      set_fact:
+        original_ansible_port: >-
+          {{ ansible_port | default(22, True) }}
     - name: Start SSHd
       changed_when: no
       command: >-
@@ -38,4 +42,5 @@
 
 - name: Restore the SSH port to default port
   set_fact:
-    ansible_port: 22
+    ansible_port: >-
+      {{ original_ansible_port }}
