@@ -10,4 +10,5 @@
 
 - name: Get Gentoo archives
   block:
+    - import_tasks: get-stage3-archive.yml
     - import_tasks: get-snapshot-archive.yml

@@ -1,0 +1,49 @@
+- name: Download latest gentoo stage3 archive
+  run_once: True
+  block:
+    - name: Download latest-stage3.txt
+      changed_when: no
+      local_action:
+        module: ansible.builtin.get_url
+        dest: >-
+          {{ user_data.setup_params.portage.local_working_dir_prefix }}
+        url: >-
+          {{ user_data.setup_params.portage.mirror_uri }}/releases/amd64/autobuilds/latest-stage3-amd64-systemd.txt
+    - name: Parse the stage3 filename
+      changed_when: no
+      local_action:
+        module: ansible.builtin.shell
+        cmd: >-
+          grep -vE '^\s*(#|$)' {{ user_data.setup_params.portage.local_working_dir_prefix }}/latest-stage3-amd64-systemd.txt
+          | awk '{print $1}'
+      register: latest_stage3_filename
+    - name: Download latest stage3 DIGESTS
+      changed_when: no
+      local_action:
+        module: ansible.builtin.get_url
+        dest: >-
+          {{ user_data.setup_params.portage.local_working_dir_prefix }}
+        url: >-
+          {{ user_data.setup_params.portage.mirror_uri }}/releases/amd64/autobuilds/{{ latest_stage3_filename.stdout }}.DIGESTS
+    - name: Verify exists stage3 archive
+      changed_when: no
+      ignore_errors: yes
+      local_action:
+        module: ansible.builtin.shell
+        cmd: >-
+          sha512sum
+          --check {{ user_data.setup_params.portage.local_working_dir_prefix }}/{{ latest_stage3_filename.stdout | basename }}.DIGESTS
+          2> /dev/null
+          | grep -E '^{{ latest_stage3_filename.stdout | basename }}:\s+OK$'
+        args:
+          chdir: >-
+            {{ user_data.setup_params.portage.local_working_dir_prefix }}
+      register: latest_stage3_archive_verified
+    - name: Download latest stage3 archive
+      local_action:
+        module: ansible.builtin.get_url
+        dest: >-
+          {{ user_data.setup_params.portage.local_working_dir_prefix }}
+        url: >-
+          {{ user_data.setup_params.portage.mirror_uri }}/releases/amd64/autobuilds/{{ latest_stage3_filename.stdout }}
+      when: latest_stage3_archive_verified is failed
