@@ -19,6 +19,13 @@
       set_fact:
         original_ansible_port: >-
           {{ ansible_port | default(22, True) }}
+    # for Gentoo Minimal Installation CD
+    # > bad ownership or modes for chroot directory component "/"
+    - name: Fix the mode on "/"
+      file:
+        path: /
+        state: directory
+        mode: "0755"
     - name: Start SSHd
       changed_when: no
       command: >-
