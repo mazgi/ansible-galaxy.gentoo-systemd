@@ -1,0 +1,17 @@
+- name: Set up the locales
+  block:
+    - name: Generate locales
+      changed_when:
+        - '" Adding locales to archive ..." in genarate_locales_result.stdout'
+      command: locale-gen --update
+      register: genarate_locales_result
+- name: Generate the machine-id
+  shell: >-
+    systemd-machine-id-setup
+  args:
+    creates: /etc/machine-id
+- name: Set the hostname
+  ansible.builtin.copy:
+    content: >-
+      {{ user_data.setup_params.hostname }}
+    dest: /etc/hostname

@@ -27,12 +27,10 @@
         ansible_port: >-
           {{ alt_sshd_port }}
 
-- name: ls /mnt 1
-  shell: ls -al /mnt/
+- name: Set up the Gentoo System on chroot
+  block:
+    - import_tasks: pre-configure-system.yml
 
 - name: Restore the SSH port to default port
   set_fact:
     ansible_port: 22
-
-- name: ls /mnt 2
-  shell: ls -al /mnt/
