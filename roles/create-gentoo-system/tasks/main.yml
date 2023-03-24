@@ -10,3 +10,4 @@
   block:
     - import_tasks: set-up-filesystems.yml
     - import_tasks: distribute-gentoo-stage3-archive.yml
+    - import_tasks: distribute-gentoo-snapshot-archive.yml
