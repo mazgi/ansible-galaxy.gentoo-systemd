@@ -10,4 +10,32 @@
     USE: getbinpkg
   retries: 3
   with_items:
+    - name: app-admin/sudo
+    - name: app-containers/docker
+    - name: app-containers/docker-cli
+    - name: app-containers/docker-compose
+    - name: app-editors/vim
+    - name: app-i18n/nkf
+    - name: app-misc/jq
+    - name: app-misc/screenfetch
+    - name: app-misc/tmux
+    - name: app-portage/eix
+    - name: app-portage/gentoolkit
+    - name: app-shells/starship
+    - name: app-shells/zsh
     - name: app-text/tree
+    - name: dev-vcs/git
+    - name: net-analyzer/iftop
+    - name: net-analyzer/netcat
+    - name: net-dns/avahi
+    - name: net-dns/bind-tools
+    - name: net-misc/dhcpcd
+    - name: sys-apps/gptfdisk
+    - name: sys-apps/systemd
+    - name: sys-auth/nss-mdns
+    - name: sys-boot/efibootmgr
+    - name: sys-fs/btrfs-progs
+    - name: sys-kernel/genkernel
+    - name: sys-kernel/gentoo-sources
+    - name: sys-process/htop
+    - name: sys-process/lsof
