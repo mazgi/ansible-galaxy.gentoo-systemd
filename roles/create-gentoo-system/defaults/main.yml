@@ -1,0 +1,12 @@
+alt_sshd_port: 10022
+user_data:
+  setup_params:
+    default_user:
+      github_account_name: null
+      name: user
+      password: null
+    hostname: null
+    main_block_device_name: sda
+    network_interface_name_pattern: eth*
+    portage:
+      local_working_dir_prefix: "{{ playbook_dir }}/tmp/provisioning"
