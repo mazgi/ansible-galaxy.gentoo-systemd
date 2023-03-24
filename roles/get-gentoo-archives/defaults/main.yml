@@ -1,0 +1,5 @@
+user_data:
+  setup_params:
+    portage:
+      local_working_dir_prefix: "{{ playbook_dir }}/tmp/provisioning"
+      mirror_uri: ftp://ftp.jaist.ac.jp/pub/Linux/Gentoo
