@@ -31,6 +31,7 @@
   block:
     - import_tasks: pre-configure-system.yml
     - import_tasks: install-basic-packages.yml
+    - import_tasks: install-kernel.yml
 
 - name: Restore the SSH port to default port
   set_fact:
