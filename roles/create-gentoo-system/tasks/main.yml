@@ -6,4 +6,7 @@
       {% else %}\
       {{ user_data.setup_params.main_block_device_name }}\
       {% endif %}"
-- import_tasks: set-up-filesystems.yml
+- name: Create the Gentoo System
+  block:
+    - import_tasks: set-up-filesystems.yml
+    - import_tasks: distribute-gentoo-stage3-archive.yml
