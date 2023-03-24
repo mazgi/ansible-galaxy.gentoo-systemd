@@ -1,0 +1,43 @@
+- name: Store the zsh path
+  changed_when: False
+  check_mode: False
+  command: which zsh
+  register: zsh_path
+- name: Create the default user
+  become: True
+  user:
+    append: True
+    group: users
+    groups: wheel
+    name: >-
+      {{ user_data.setup_params.default_user.name }}
+    password: >-
+      {{ user_data.setup_params.default_user.password | password_hash('sha512') }}
+    shell: >-
+      {{ zsh_path.stdout }}
+    uid: >-
+      {{ 20000 | random(start=10000) }}
+- name: Create the sudoers.d directory
+  become: True
+  file:
+    path: /etc/sudoers.d
+    state: directory
+    mode: 0755
+- name: Add the group to sudoers
+  become: True
+  copy:
+    dest: /etc/sudoers.d/allow-all-to-wheel
+    content: |
+      %wheel ALL=(ALL:ALL) ALL
+- name: Get pubkeys from GitHub
+  become: True
+  authorized_key:
+    user: user
+    key: >-
+      {{
+        lookup(
+          'url',
+          'https://github.com/{{ user_data.setup_params.default_user.github_account_name }}.keys',
+          split_lines=False
+        )
+      }}
