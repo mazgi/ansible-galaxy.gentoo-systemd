@@ -1,0 +1,65 @@
+- name: Set up the UEFI bootloader
+  block:
+    - name: Create the directory for UEFI
+      file:
+        path: /boot/EFI/Gentoo
+        state: directory
+    # Todo: use find module
+    - name: Get the latest kernel
+      changed_when: no
+      shell: >-
+        \ls -t1 /boot/vmlinuz-*-x86_64 | head -1
+      register: latest_vmlinuz
+    - name: Copy the kernel
+      copy:
+        dest: /boot/EFI/Gentoo/vmlinuz-gentoo.efi
+        src: >-
+          {{ latest_vmlinuz.stdout }}
+        remote_src: yes
+    - name: Get the latest initramfs image
+      changed_when: no
+      shell: >-
+        \ls -t1 /boot/initramfs-*-x86_64.img | head -1
+      register: latest_initramfs
+    - name: Copy the initramfs image
+      copy:
+        dest: /boot/EFI/Gentoo/initramfs-gentoo.img
+        src: >-
+          {{ latest_initramfs.stdout }}
+        remote_src: yes
+    - name: Verify the UEFI bootnum
+      changed_when: no
+      ignore_errors: yes
+      shell: >-
+        efibootmgr
+        | grep -E '^Boot[0-9]+\* Gentoo\s+HD'
+      register: exists_uefi_bootnum
+    - name: Create the UEFI boot entry
+      shell: >-
+        efibootmgr
+        --create
+        --part 1
+        --disk /dev/{{ user_data.setup_params.main_block_device_name }}
+        --label Gentoo
+        --loader "\\EFI\\Gentoo\\vmlinuz-gentoo.efi"
+        --unicode "root=/dev/{{ main_block_device_partition_prefix }}3 rootflags=subvol=gentoo rootfstype=btrfs initrd=\\EFI\\Gentoo\\initramfs-gentoo.img"
+      when: exists_uefi_bootnum is failed
+    - name: Get the UEFI bootnum
+      changed_when: no
+      ignore_errors: yes
+      shell: >-
+        efibootmgr
+        | grep -E '^Boot[0-9]+\* Gentoo(\s+|$)'
+        | sed -e 's/^Boot\([0-9]\+\).*$/\1/'
+      register: uefi_bootnum
+    - name: Verify the UEFI bootorder
+      changed_when: no
+      ignore_errors: yes
+      shell: >-
+        efibootmgr
+        | grep -E '^BootOrder:\s+{{ uefi_bootnum.stdout }}[,$]'
+      register: uefi_first_bootnum_is_verified
+    - name: Set the UEFI bootorder
+      shell: >-
+        efibootmgr --bootorder {{ uefi_bootnum.stdout }}
+      when: uefi_first_bootnum_is_verified is failed
