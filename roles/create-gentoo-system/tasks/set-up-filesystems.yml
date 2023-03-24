@@ -20,3 +20,111 @@
           /dev/{{ main_block_device_partition_prefix }}1
         fstype: vfat
         opts: -F32
+
+- name: Set up the SWAP partition
+  block:
+    - name: Create the SWAP partition
+      parted:
+        device: >-
+          /dev/{{ user_data.setup_params.main_block_device_name }}
+        flags:
+          - swap
+        fs_type: linux-swap
+        label: gpt
+        name: swap
+        number: 2
+        part_end: 2GiB
+        part_start: 128MiB
+        state: present
+    - name: Make SWAP
+      filesystem:
+        dev: >-
+          /dev/{{ main_block_device_partition_prefix }}2
+        fstype: swap
+
+- name: Set up the main partition
+  block:
+    - name: Create the main partition
+      parted:
+        device: >-
+          /dev/{{ user_data.setup_params.main_block_device_name }}
+        fs_type: btrfs
+        label: gpt
+        name: gentoo
+        number: 3
+        part_end: 100%
+        part_start: 2GiB
+        state: present
+    - name: Format the main partition
+      filesystem:
+        dev: >-
+          /dev/{{ main_block_device_partition_prefix }}3
+        fstype: btrfs
+
+- name: Create the subvols in the main partition
+  block:
+    - name: Create the mount point to create btrfs subvolumes
+      changed_when: no
+      file:
+        path: /mnt/btrfs
+        state: directory
+    - name: Mount the main volume to create subvols
+      changed_when: no
+      mount:
+        fstype: btrfs
+        name: /mnt/btrfs
+        src: >-
+          /dev/{{ main_block_device_partition_prefix }}3
+        state: mounted
+    - name: Create subvols
+      command: >-
+        btrfs subvolume create /mnt/btrfs/{{ item.name }}
+      args:
+        creates: >-
+          /mnt/btrfs/{{ item.name }}
+      with_items:
+        - name: gentoo
+        - name: var-log
+    - name: Unmount the main volume
+      changed_when: no
+      mount:
+        fstype: btrfs
+        name: /mnt/btrfs
+        src: >-
+          /dev/{{ main_block_device_partition_prefix }}3
+        state: unmounted
+
+- name: Mount filesystems
+  block:
+    - name: Mount /
+      mount:
+        fstype: btrfs
+        name: /mnt/gentoo
+        opts: defaults,subvol=gentoo
+        src: >-
+          /dev/{{ main_block_device_partition_prefix }}3
+        state: mounted
+    - name: Create the mount point for /boot
+      file:
+        path: /mnt/gentoo/boot
+        state: directory
+    - name: Mount /boot
+      mount:
+        fstype: vfat
+        name: /mnt/gentoo/boot
+        opts: defaults
+        src: >-
+          /dev/{{ main_block_device_partition_prefix }}1
+        state: mounted
+    - name: Create the mount point for /var/log
+      file:
+        path: /mnt/gentoo/var/log
+        state: directory
+    - name: Mount /var/log
+      mount:
+        fstype: btrfs
+        name: /mnt/gentoo/var/log
+        opts: defaults,subvol=var-log
+        src: >-
+          /dev/{{ main_block_device_partition_prefix }}3
+        state: mounted
