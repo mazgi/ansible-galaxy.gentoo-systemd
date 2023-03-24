@@ -1,0 +1,22 @@
+- name: Set up the UEFI boot partition
+  block:
+    - name: Create the UEFI boot partition
+      parted:
+        device: >-
+          /dev/{{ user_data.setup_params.main_block_device_name }}
+        flags:
+          - boot
+          - esp
+        fs_type: fat32
+        label: gpt
+        name: uefi_boot
+        number: 1
+        part_end: 128MiB
+        part_start: 1MiB
+        state: present
+    - name: Format the UEFI boot partition
+      filesystem:
+        dev: >-
+          /dev/{{ main_block_device_partition_prefix }}1
+        fstype: vfat
+        opts: -F32

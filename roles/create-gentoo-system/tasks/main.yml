@@ -6,6 +6,4 @@
       {% else %}\
       {{ user_data.setup_params.main_block_device_name }}\
       {% endif %}"
-
-- debug:
-    var: main_block_device_partition_prefix
+- import_tasks: set-up-filesystems.yml
