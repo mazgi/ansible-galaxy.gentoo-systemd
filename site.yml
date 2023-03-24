@@ -4,3 +4,4 @@
   user: root
   roles:
     - role: validate-parameters
+    - role: get-gentoo-archives
