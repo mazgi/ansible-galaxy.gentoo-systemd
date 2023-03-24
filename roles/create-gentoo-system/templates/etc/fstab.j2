@@ -1,0 +1,4 @@
+/dev/{{ main_block_device_partition_prefix }}3	/	btrfs	defaults,subvol=gentoo	0 1
+/dev/{{ main_block_device_partition_prefix }}3	/var/log	btrfs	defaults,subvol=var-log	0 1
+/dev/{{ main_block_device_partition_prefix }}1	/boot	vfat	defaults	0 1
+/dev/{{ main_block_device_partition_prefix }}2	none		swap		sw		0 0
