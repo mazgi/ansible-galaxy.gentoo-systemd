@@ -1,0 +1,26 @@
+- name: Get default user password
+  pause:
+    echo: False
+    prompt: Please input default user password
+  register: _tmp_default_user_password
+- name: Update target block device name
+  pause:
+    prompt: If you want to change the block device of the target, please type it (sda)
+  register: _tmp_main_block_device_name
+
+- name: Share target params as the fact
+  set_fact:
+    user_data:
+      setup_params:
+        default_user:
+          password: >-
+            {{ _tmp_default_user_password.user_input }}
+        main_block_device_name: >-
+          {{ _tmp_main_block_device_name.user_input | default('sda', True) }}
+        portage:
+          local_working_dir_prefix: >-
+            {{ playbook_dir }}/tmp/provisioning
+          mirror_uri: ftp://ftp.jaist.ac.jp/pub/Linux/Gentoo
+
+- debug:
+    var: user_data

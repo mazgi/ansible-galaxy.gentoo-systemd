@@ -2,6 +2,5 @@
 - name: Install Gentoo Linux
   hosts: all
   user: root
-  tasks:
-    - debug:
-        msg: hi
+  roles:
+    - role: validate-parameters
