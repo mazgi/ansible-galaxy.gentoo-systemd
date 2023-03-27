@@ -1,28 +1,28 @@
 # An Ansible Playbook to install Gentoo Linux that works with UEFI and systemd
 
-This repository is an [Ansible Playbook](https://docs.ansible.com/ansible/latest/playbook_guide/playbooks_intro.html) to install Gentoo Linux into your physical and virtual machines. And this playbook also uses SSH to connect to your target machine, as usual in other playbooks.
+This repository is an [Ansible Playbook](https://docs.ansible.com/ansible/latest/playbook_guide/playbooks_intro.html) to install Gentoo Linux into your physical and virtual machines. This playbook also uses SSH to connect to your target machine, the same as other playbooks.
 
 The Gentoo Linux will be set up with the following conditions and components.
 
 - <ins>AMD64(aka x86_64, x64)</ins> is the only architecture supported on this playbook
-- Booting from <ins>UEFI</ins>, legacy BIOS is not supported
+- <ins>UEFI</ins> booting; legacy BIOS is not supported
 - Using and occupying <ins>a whole empty SSD/HDD</ins>
-  - It cannot configure multiple booting from one device or straddle various devices. And if you target a device with preserved data, the behavior will not be defined.
+  - The playbook cannot configure multiple booting from one device or straddle various devices. If you target a device with preserved data, the behavior will not be defined.
 - [<ins>BTRFS</ins>](https://wiki.gentoo.org/wiki/Btrfs) is used as the main filesystem
   - BTRFS is a very safe, secure, and stable filesystem.
 - Using [<ins>systemd</ins>](https://wiki.gentoo.org/wiki/Systemd) as the init system(aka super daemon)
-  - It does not consider OpenRC.
-  - As a matter of fact, the system will be built on the system based on the systemd [stage3](https://wiki.gentoo.org/wiki/Stage_tarball#Stage_3) archive and it will be selected `default/linux/{ARCH}/{STABLE}/systemd` profile after the setup process is completed.
-- A default user who can elevate to root using the sudo command will be created
-- Does not consider GUI and audio
+  - The playbook does not consider OpenRC.
+  - As a matter of fact, the system will be built on the system based on the systemd [stage3](https://wiki.gentoo.org/wiki/Stage_tarball#Stage_3) archive and will be selected `default/linux/{ARCH}/{STABLE}/systemd` profile after the setup process is completed.
+- A default user who can elevate themselves to root using `sudo` command will be created
+- Does not consider GUI or audio
 
-## What are the Things Required to Use this Playbook?
+## Requirements for Using this Playbook
 
-There are only two things as follows you should prepare to use this playbook.
+The following two are the only things you need to prepare to use this playbook.
 
-One, <ins>Docker and [Docker Compose](https://docs.docker.com/compose/)</ins> are needed. This method depends on containers, but it will free you from any other dependencies, such as ansible, python, and others, as an excellent advantage.
+First, <ins>Docker and [Docker Compose](https://docs.docker.com/compose/)</ins> are needed. This method relies on containers, but it will free you from any other dependencies, such as ansible, python, and others, which is an excellent advantage.
 
-Two, <ins>A bootable Linux system</ins> that can mount a block device you want to install Gentoo Linux is needed. Typically you can use Gentoo [Minimal Installation CD](https://wiki.gentoo.org/wiki/Bootable_media) or [SystemRescue](https://www.system-rescue.org/) image for that purpose.
+Second, you need <ins>a bootable Linux system</ins> that can mount a block device to install Gentoo Linux. Typically, you can use a Gentoo [Minimal Installation CD](https://wiki.gentoo.org/wiki/Bootable_media) and a [SystemRescue](https://www.system-rescue.org/) image for that purpose.
 
 ## How to Use?
 
