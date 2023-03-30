@@ -1,0 +1,5 @@
+setup_params_default_user_name: user
+setup_params_hostname: >-
+  {{ inventory_hostname | split('.') | first }}
+setup_params_main_block_device_name: sda
+setup_params_network_interface_name_pattern: eth*

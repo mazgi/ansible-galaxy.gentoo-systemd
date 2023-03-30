@@ -1,28 +1,45 @@
-- name: Get default user GitHub account name
+# GitHub account
+- name: Get default user GitHub account name from user_input
   pause:
     prompt: Please input GitHub account
   register: _tmp_default_user_github_account_name
-- name: Get default user password
+  when: setup_params_default_user_github_account_name is not defined
+
+# Password
+- name: Get default user password from user_input
   pause:
     echo: False
     prompt: Please input default user password
   register: _tmp_default_user_password
+  when: setup_params_default_user_password is not defined
+
+# Todo: Hostname
 - name: Update target hostname
   pause:
     prompt: If you want to change the hostname of the target, please type it ({{ inventory_hostname | split('.') | first }})
   register: _tmp_hostname
+  when: setup_params_hostname is not defined
+
+# Block device
 - name: Update target block device name
   pause:
     prompt: If you want to change the block device of the target, please type it (sda)
   register: _tmp_main_block_device_name
+  when: setup_params_main_block_device_name is not defined
+
+# NIC
 - name: Update target network interface pattern
   pause:
     prompt: If you want to change the network interface pattern of the target, please type it (eth*)
   register: _tmp_network_interface_name_pattern
+  when: setup_params_network_interface_name_pattern is not defined
+
+# Username
 - name: Update default user name
   pause:
     prompt: If you want to change the name of the default user, please type it (user)
   register: _tmp_default_user_name
+  when: setup_params_default_user_name is not defined
 
 - name: Share target params as the fact
   set_fact:
@@ -30,17 +47,17 @@
       setup_params:
         default_user:
           github_account_name: >-
-            {{ _tmp_default_user_github_account_name.user_input }}
+            {{ _tmp_default_user_github_account_name.user_input | default(setup_params_default_user_github_account_name, True) }}
           name: >-
-            {{ _tmp_default_user_name.user_input | default('user', True) }}
+            {{ _tmp_default_user_name.user_input | default(setup_params_default_user_name, True) }}
           password: >-
-            {{ _tmp_default_user_password.user_input }}
+            {{ _tmp_default_user_password.user_input | default(setup_params_default_user_password, True) }}
         hostname: >-
-          {{ _tmp_hostname.user_input | default((inventory_hostname | split('.') | first), True) }}
+          {{ _tmp_hostname.user_input | default(setup_params_hostname, True) }}
         main_block_device_name: >-
-          {{ _tmp_main_block_device_name.user_input | default('sda', True) }}
+          {{ _tmp_main_block_device_name.user_input | default(setup_params_main_block_device_name, True) }}
         network_interface_name_pattern: >-
-          {{ _tmp_network_interface_name_pattern.user_input | default('eth*', True) }}
+          {{ _tmp_network_interface_name_pattern.user_input | default(setup_params_network_interface_name_pattern, True) }}
         portage:
           local_working_dir_prefix: >-
             {{ playbook_dir }}/tmp/provisioning
