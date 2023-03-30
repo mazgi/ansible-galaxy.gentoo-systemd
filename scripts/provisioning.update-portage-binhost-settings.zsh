@@ -28,7 +28,6 @@ showHelp() {
   echo "Usage: ${SCRIPT_NAME} [OPTIONS]"
   echo "Options:"
   echo "\t-h, --help\t\tShow this help message."
-  # See https://zsh.sourceforge.io/Guide/zshguide05.html#l124
   echo "\t-b, --binhost url\tSpecify the portage HTTP binhost."
 }
 
