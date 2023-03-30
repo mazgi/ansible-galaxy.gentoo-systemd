@@ -52,8 +52,7 @@ while [ $# -gt 0 ]; do
   esac
 done
 echoInfo "The binhost base URL \"${PORTAGE_BINHOST_BASE_URL}\" was specified."
-# Validate the backend type.
-# See https://zsh.sourceforge.io/Guide/zshguide05.html#l121
+# Validate the binhost base url.
 if ! curl --fail --location --output /dev/null --silent ${PORTAGE_BINHOST_BASE_URL}; then
   exitBecauseIlligalBinhostSpecified
 fi
