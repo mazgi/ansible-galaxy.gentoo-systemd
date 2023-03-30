@@ -32,13 +32,40 @@ x-service-provisioning-base: &provisioning-base
     - ${HOME}/.ssh:/root/.ssh:ro # for macOS & Windows
     - ${HOME}/.ssh:/home/developer/.ssh:ro
   working_dir: /workspace
+x-environment-binhost-port-published: &environment-binhost-port-published 8080
 
 services:
+  portage-binhost:
+    image: ghcr.io/mazgi/portage-binhost
+    init: true
+    ports:
+      - target: 80
+        published: *environment-binhost-port-published
+
   # You are able to implement your service like below.
   provisioning:
     <<: *provisioning-base
+    command:
+      - zsh
+      - --login
+      - -c
+      - |
+        docker-util.keep-running.zsh --reset-status
+        {
+          ansible-galaxy install -r requirements.yml\
+          && /workspace/scripts/provisioning.update-portage-binhost-settings.zsh\
+          --binhost http://$${PORTAGE_BINHOST_HOST}:$${PORTAGE_BINHOST_PORT}
+        }\
+        && docker-util.keep-running.zsh --record-success\
+        || {
+          docker-util.keep-running.zsh --record-failure
+          exit 1
+        }
+        docker-util.keep-running.zsh --wait-signals
     environment:
       ANSIBLE_CONFIG: /workspace/config/ansible.cfg
+      PORTAGE_BINHOST_HOST: ${PUBLIC_IP_ADDR_OR_FQDN:-localhost}
+      PORTAGE_BINHOST_PORT: *environment-binhost-port-published
 
   # for Prettier Code Formatter
   # ["INFO" - 00:00:00 AM] Attempted to determine module path from /path/to/the/project
