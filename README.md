@@ -13,31 +13,31 @@ The Gentoo Linux will be set up with the following conditions and components.
 - Using [<ins>systemd</ins>](https://wiki.gentoo.org/wiki/Systemd) as the init system(aka super daemon)
   - The playbook does not consider OpenRC.
   - As a matter of fact, the system will be built on the system based on the systemd [stage3](https://wiki.gentoo.org/wiki/Stage_tarball#Stage_3) archive and will be selected `default/linux/{ARCH}/{STABLE}/systemd` profile after the setup process is completed.
-- A default user who can elevate themselves to root using `sudo` command will be created
+- A default user who can elevate themselves to root using the `sudo` command will be created
 - Does not consider GUI or audio
 
 ## Requirements for Using this Playbook
 
-The following two are the only things you need to prepare to use this playbook.
+There are only two things you should prepare to use this playbook.
 
 First, <ins>Docker and [Docker Compose](https://docs.docker.com/compose/)</ins> are needed. This method relies on containers, but it will free you from any other dependencies, such as ansible, python, and others, which is an excellent advantage.
 
 Second, you need <ins>a bootable Linux system</ins> that can mount a block device to install Gentoo Linux. Typically, you can use a Gentoo [Minimal Installation CD](https://wiki.gentoo.org/wiki/Bootable_media) and a [SystemRescue](https://www.system-rescue.org/) image for that purpose.
 
-## How to Use?
+## How to Use the Playbook?
 
-### Place the .env File (if you are using Linux)
+### Place the .env File if you are using Linux
 
-:information_source: Are you using macOS and Windows? Nothing to do in this section; please skip it.
+:information_source: Are you using macOS or Windows? If so, there is nothing to do in this section; please skip it.
 
-If you are using Linux, you need to create the `.env` file such as the following.
+If you are using Linux, you need to create the `.env` file like the following.
 
 ```.env
 GID=1234
 UID=1234
 ```
 
-A trick to create the `.env` file and fill in `UID` and `GID`, you can do the following command.
+One trick to creating the `.env` file and fill in `UID` and `GID` is to do the following command.
 
 ```console
 test $(uname -s) = 'Linux' && {
@@ -46,10 +46,10 @@ test $(uname -s) = 'Linux' && {
 } >> .env || :
 ```
 
-Those `GID` and `UID` will be used to indicate the values when the containers are built. This makes you will create a user who has the same GID and UID as you on the container.  
-This is important using a container on Linux, and you will avoid being created any files without the proper ownership you can fully control.
+Those `GID` and `UID` will be used to indicate the values when the containers are built. This makes a user who has the same GID and UID as you on the container.  
+This is important when using a container on Linux, and you will avoid creating any files that you don't have proper ownership of or can't fully control.
 
-### Start Containers
+### Start the Containers
 
 You can start the containers using the `docker compose up` command.
 
@@ -57,7 +57,7 @@ You can start the containers using the `docker compose up` command.
 docker compose up --wait
 ```
 
-:information_source: After completing to start containers, you can ensure these are running correctly using the `docker compose ps` and `docker compose logs` commands.
+:information_source: After completing the container starting process, you can ensure these are running correctly using the `docker compose ps` and `docker compose logs` commands.
 
 ```
 ❯ docker compose logs --no-log-prefix provisioning
@@ -77,30 +77,30 @@ Turn in infinity sleep...
 
 ### Boot your Target Machine using Bootable Linux Image
 
-#### When Boot from Gentoo Minimal Installation CD
+#### When Booting from Gentoo Minimal Installation CD
 
 Please specify the `dosshd` option at bootup.
 
-#### When Boot from SystemRescue
+#### When Booting from SystemRescue
 
 Please specify the `nofirewall` option at bootup.
 
-### On Your Target: Accept SSH and Make Sure the Environment
+### On Your Target: Accept SSH and Make Sure of the Environment
 
-On your target machine, register the public key that is used to connect your target from your local.
+On your target machine, register the public key that is used to connect via SSH your target from your local machine.
 
 ```console
 mkdir -p ~/.ssh
 curl -L github.com/YOUR_ACCOUNT.keys | tee ~/.ssh/authorized_keys
 ```
 
-On the target, make sure the IP address that assigned.
+On the target, locate the IP address that is assigned and write it down a record.
 
 ```console
 ip a
 ```
 
-On the target, make sure the block device that you want to install the system.
+On the target, locate the block device that you want to install the system on and keep a record.
 
 ```console
 lsblk
@@ -108,9 +108,9 @@ lsblk
 
 ### Define your Inventory
 
-Write out an inventory as a file with the target IP address that gets in the previous section and a hostname you want to name.
+Write out the inventory as a file with the target IP address that we looked at in the previous section and the hostname you want to name.
 
-For instance, you can create the `config/inventories/hosts.yml` file with such as the following content.
+For instance, you can create the `config/inventories/hosts.yml` file as below:
 
 ```yaml
 all:
@@ -138,9 +138,9 @@ host-1.local | SUCCESS => {
 }
 ```
 
-### Play the Playbook
+### Run the Playbook
 
-Now, you can play your playbook as follows :clap:
+Now, you can run your playbook as follows :clap:
 
 ```console
 docker compose exec provisioning ansible-playbook\
@@ -149,5 +149,5 @@ docker compose exec provisioning ansible-playbook\
  site.yml
 ```
 
-Will it take forever?  
-That's great! While taking several cups of :coffee: and :tea:, you can watch over your machine growing up :egg: :hatching_chick: :hatched_chick: :rooster:
+Is it taking forever?  
+That's great! While taking several cups of :coffee: and :tea:, you can watch over your machine :egg: :hatching_chick: :hatched_chick: :rooster:
