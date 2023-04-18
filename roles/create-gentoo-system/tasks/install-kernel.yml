@@ -1,0 +1,20 @@
+- name: Install the kernel
+  block:
+    - name: Symlink the kernel
+      args:
+        creates: /usr/src/linux
+      command: emerge -q gentoo-sources
+      environment:
+        USE: symlink
+    - name: Build the kernel
+      args:
+        creates: >-
+          /boot/initramfs-*-{{ ansible_machine }}.img
+      command: >-
+        genkernel
+        --kernel-config=/etc/kernels/kernel-config-gentoo-{{ ansible_machine }}
+        --makeopts=-j$(($(nproc)+1))
+        all
+      register: built_the_kernel
+      retries: 3
+      until: built_the_kernel is not failed

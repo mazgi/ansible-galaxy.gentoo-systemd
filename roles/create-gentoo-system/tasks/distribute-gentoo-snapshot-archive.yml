@@ -1,0 +1,14 @@
+- name: Distribute gentoo snapshot archive
+  block:
+    - name: Create the directory for portage snapshot
+      file:
+        path: /mnt/gentoo/var/db/repos/gentoo
+        state: directory
+    - name: Unarchive portage snapshot
+      unarchive:
+        creates: /mnt/gentoo/var/db/repos/gentoo/Manifest
+        extra_opts:
+          - --strip-components=1
+        dest: /mnt/gentoo/var/db/repos/gentoo/
+        src: >-
+          {{ user_data.setup_params.portage.local_working_dir_prefix }}/portage-latest.tar.xz

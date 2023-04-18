@@ -1,0 +1,19 @@
+- name: Distribute gentoo stage3 archive
+  block:
+    - name: Parse the stage3 filename
+      changed_when: no
+      local_action:
+        module: ansible.builtin.shell
+        cmd: >-
+          grep -vE '^\s*(#|$)' {{ user_data.setup_params.portage.local_working_dir_prefix }}/latest-stage3-amd64-systemd.txt
+          | awk '{print $1}'
+      register: latest_stage3_filename
+    - name: Unarchive stage3
+      unarchive:
+        creates: /mnt/gentoo/etc/gentoo-release
+        extra_opts:
+          - --numeric-owner
+          - --xattrs-include='*.*'
+        dest: /mnt/gentoo
+        src: >-
+          {{ user_data.setup_params.portage.local_working_dir_prefix }}/{{ latest_stage3_filename.stdout | basename }}

@@ -1,0 +1,66 @@
+- name: Set block device partition prefix
+  set_fact:
+    main_block_device_partition_prefix: "\
+      {% if user_data.setup_params.main_block_device_name.startswith('nvme') %}\
+      {{ user_data.setup_params.main_block_device_name }}p\
+      {% else %}\
+      {{ user_data.setup_params.main_block_device_name }}\
+      {% endif %}"
+- name: Create the Gentoo System
+  block:
+    - import_tasks: set-up-filesystems.yml
+    - import_tasks: distribute-gentoo-stage3-archive.yml
+    - import_tasks: distribute-gentoo-snapshot-archive.yml
+    - import_tasks: prepare-chroot.yml
+
+- name: Set up SSHd alt port
+  block:
+    - name: Store the original SSH port
+      set_fact:
+        original_ansible_port: >-
+          {{ ansible_port | default(22, True) }}
+    # for Gentoo Minimal Installation CD
+    # > bad ownership or modes for chroot directory component "/"
+    - name: Fix the mode on "/"
+      file:
+        path: /
+        state: directory
+        mode: "0755"
+    - name: Start SSHd
+      changed_when: no
+      command: >-
+        /usr/sbin/sshd
+        -o ChrootDirectory=/mnt/gentoo
+        -o SetEnv=PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/opt/bin
+        -p {{ alt_sshd_port }}
+    # Get the PID using the shell module because Live CDs do not have `psutil`.
+    # > ModuleNotFoundError: No module named 'psutil'
+    - name: Get SSHd PID
+      changed_when: no
+      shell: >-
+        ps aux
+        | grep -E '/usr/sbin/sshd\s+-o\s+ChrootDirectory=/mnt/gentoo'
+        | awk '{print $2}'
+      register: alt_sshd_pid
+    - name: Change the SSH port to the alt port
+      set_fact:
+        ansible_port: >-
+          {{ alt_sshd_port }}
+
+- name: Set up the Gentoo System on chroot
+  block:
+    - import_tasks: pre-configure-system.yml
+    - import_tasks: install-basic-packages.yml
+    # - import_tasks: install-kernel.yml
+    - import_tasks: post-configure-system.yml
+    - import_tasks: set-up-default-user.yml
+    - import_tasks: set-up-uefi-bootloader.yml
+
+- name: Restore the SSH port to default port
+  set_fact:
+    ansible_port: >-
+      {{ original_ansible_port }}
+- name: Stop SSHd
+  changed_when: no
+  command: >-
+    kill {{ alt_sshd_pid.stdout }}

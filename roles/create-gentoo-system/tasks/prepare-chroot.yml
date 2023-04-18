@@ -1,0 +1,50 @@
+- name: Mount necessary filesystems to prepare chroot
+  block:
+    - name: Mount /dev
+      mount:
+        fstype: none
+        name: /mnt/gentoo/dev
+        opts: rbind,make-rslave
+        src: /dev
+        state: mounted
+    - name: Mount /sys
+      mount:
+        fstype: none
+        name: /mnt/gentoo/sys
+        opts: rbind,make-rslave
+        src: /sys
+        state: mounted
+    - name: Mount /proc
+      mount:
+        fstype: proc
+        src: none
+        name: /mnt/gentoo/proc
+        state: mounted
+
+- name: Copy files to prepare chroot
+  block:
+    - name: Create directories by the templates
+      file:
+        path: >-
+          {{
+            item
+            | regex_replace('^('+role_path+'/templates/)(.*)', '/mnt/gentoo/\2')
+          }}
+        state: directory
+      with_lines: find {{ role_path }}/templates -type d
+    - name: Apply templates
+      template:
+        dest: >-
+          {{
+            item
+            | regex_replace('^('+role_path+'/templates/)(.*)(.j2$)', '/mnt/gentoo/\2')
+          }}
+        src: >-
+          {{ item }}
+      with_lines: >-
+        find {{ role_path }}/templates -type f -name '*.j2'
+    - name: Copy resolv.conf
+      copy:
+        dest: /mnt/gentoo/etc/resolv.conf
+        remote_src: yes
+        src: /etc/resolv.conf

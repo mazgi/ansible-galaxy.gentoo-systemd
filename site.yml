@@ -1,0 +1,8 @@
+---
+- name: Install Gentoo Linux
+  hosts: all
+  user: root
+  roles:
+    - role: validate-parameters
+    - role: get-gentoo-archives
+    - role: create-gentoo-system

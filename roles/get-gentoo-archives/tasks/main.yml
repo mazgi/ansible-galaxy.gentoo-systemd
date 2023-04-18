@@ -1,0 +1,14 @@
+- name: Prepare
+  run_once: True
+  block:
+    - name: Create the directory to download archives
+      local_action:
+        module: ansible.builtin.file
+        path: >-
+          {{ user_data.setup_params.portage.local_working_dir_prefix }}
+        state: directory
+
+- name: Get Gentoo archives
+  block:
+    - import_tasks: get-stage3-archive.yml
+    - import_tasks: get-snapshot-archive.yml
