@@ -42,6 +42,7 @@
     - name: sys-boot/efibootmgr
     - name: sys-fs/btrfs-progs
     - name: sys-kernel/genkernel
+    - name: sys-kernel/gentoo-kernel
     - name: sys-kernel/gentoo-sources
     - name: sys-process/htop
     - name: sys-process/lsof

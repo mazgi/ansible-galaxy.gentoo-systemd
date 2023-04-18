@@ -51,7 +51,7 @@
   block:
     - import_tasks: pre-configure-system.yml
     - import_tasks: install-basic-packages.yml
-    - import_tasks: install-kernel.yml
+    # - import_tasks: install-kernel.yml
     - import_tasks: post-configure-system.yml
     - import_tasks: set-up-default-user.yml
     - import_tasks: set-up-uefi-bootloader.yml

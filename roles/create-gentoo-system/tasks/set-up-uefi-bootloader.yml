@@ -8,7 +8,7 @@
     - name: Get the latest kernel
       changed_when: no
       shell: >-
-        \ls -t1 /boot/vmlinuz-*-x86_64 | head -1
+        \ls -t1 /boot/vmlinuz-*-gentoo-dist | head -1
       register: latest_vmlinuz
     - name: Copy the kernel
       copy:
@@ -19,7 +19,7 @@
     - name: Get the latest initramfs image
       changed_when: no
       shell: >-
-        \ls -t1 /boot/initramfs-*-x86_64.img | head -1
+        \ls -t1 /boot/initramfs-*-gentoo-dist.img | head -1
       register: latest_initramfs
     - name: Copy the initramfs image
       copy:
