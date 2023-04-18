@@ -1,0 +1,5 @@
+# Enable process_vm_readv and process_vm_writev to be able to compile dev-lang/go in the container.
+# See also:
+#   - https://github.com/gentoo/gentoo-docker-images/issues/98
+#   - https://github.com/moby/moby/commit/d39b075302c27f77b2de413697a5aacb034d8286
+=app-containers/docker-23.0* ~amd64
